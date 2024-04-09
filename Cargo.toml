@@ -7,6 +7,8 @@ edition = "2021"
 
 [dependencies]
 float-cmp = "0.9"
+gl="0.14"
 itertools = "0.12"
 nalgebra="0.32"
 rand = "0.8"
+sdl2="0.36"

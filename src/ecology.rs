@@ -38,45 +38,53 @@ impl IndexMut<CellIndex> for Ecosystem {
 
 #[derive(Clone)]
 pub(crate) struct Cell {
-    pub(crate) layers: Vec<CellLayer>,
+    pub(crate) bedrock: Option<Bedrock>,
+    pub(crate) rock: Option<Rock>,
+    pub(crate) sand: Option<Sand>,
+    pub(crate) humus: Option<Humus>,
+    pub(crate) trees: Option<Trees>,
+    pub(crate) bushes: Option<Bushes>,
+    pub(crate) grasses: Option<Grasses>,
+    pub(crate) dead_vegetation: Option<DeadVegetation>,
+
     pub(crate) soil_moisture: f32,
     pub(crate) sunlight: f32,
     pub(crate) temperature: f32,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(crate) enum CellLayer {
-    Bedrock(Bedrock),
-    Rock(Rock),
-    Sand(Sand),
-    Humus(Humus),
-    Trees(Trees),
-    Bushes(Bushes),
-    Grasses(Grasses),
-    DeadVegetation(DeadVegetation),
+    Bedrock(Option<Bedrock>),
+    Rock(Option<Rock>),
+    Sand(Option<Sand>),
+    Humus(Option<Humus>),
+    Trees(Option<Trees>),
+    Bushes(Option<Bushes>),
+    Grasses(Option<Grasses>),
+    DeadVegetation(Option<DeadVegetation>),
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(crate) struct Bedrock {
     pub(crate) height: f32,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(crate) struct Rock {
     pub(crate) height: f32,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(crate) struct Sand {
     pub(crate) height: f32,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(crate) struct Humus {
     pub(crate) height: f32,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug)]
 pub(crate) struct Trees {
     pub(crate) number_of_plants: u32,
     // height ∝ diameter ^ (2/3) apparently
@@ -84,19 +92,19 @@ pub(crate) struct Trees {
     pub(crate) plant_age_sum: f32,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(crate) struct Bushes {
     pub(crate) number_of_plants: u32,
     pub(crate) plant_height_sum: f32,
     pub(crate) plant_age_sum: f32,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(crate) struct Grasses {
     pub(crate) coverage_density: f32,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub(crate) struct DeadVegetation {
     pub(crate) biomass: f32, // in kg
 }
@@ -116,21 +124,27 @@ struct Plant {
 
 impl Ecosystem {
     pub fn init() -> Self {
-        let bedrock = CellLayer::Bedrock(Bedrock {
-            height: constants::DEFAULT_BEDROCK_HEIGHT,
-        });
         Ecosystem {
             cells: vec![
                 vec![
                     Cell {
-                        layers: vec![bedrock],
-                        soil_moisture: 0.0,
-                        sunlight: 0.0,
-                        temperature: 0.0
+                        soil_moisture:0.0,
+                        sunlight:0.0,
+                        temperature:0.0, 
+                        bedrock: Some(Bedrock {
+                            height: constants::DEFAULT_BEDROCK_HEIGHT,
+                        }),
+                        rock: None,
+                        sand: None,
+                        humus: None,
+                        trees: None,
+                        bushes: None,
+                        grasses: None,
+                        dead_vegetation:None,
                     };
-                    100
+                    constants::AREA_SIDE_LENGTH
                 ];
-                100
+                constants::AREA_SIDE_LENGTH
             ],
         }
     }
@@ -266,6 +280,17 @@ impl Neighbors {
 // }
 
 impl Cell {
+    // pub(crate) fn get_layers(&self) -> Vec<&CellLayer> {
+    //     vec![&CellLayer::Bedrock(self.bedrock), 
+    //     &CellLayer::Sand(self.sand), 
+    //     &CellLayer::Humus(self.humus), 
+    //     &CellLayer::Rock(self.rock), 
+    //     &CellLayer::Trees(self.trees), 
+    //     &CellLayer::Bushes(self.bushes), 
+    //     &CellLayer::Grasses(self.grasses),
+    //     &CellLayer::DeadVegetation(self.dead_vegetation)]
+    // }
+
     pub(crate) fn get_neighbors(index: &CellIndex) -> Neighbors {
         let x = index.x;
         let y = index.y;
@@ -324,181 +349,53 @@ impl Cell {
     }
 
     pub(crate) fn get_height(self: &Cell) -> f32 {
-        self.layers.iter().map(CellLayer::get_height).sum()
-    }
-
-    // ***LAYER GETTERS***
-
-    pub(crate) fn get_bedrock_layer(&self) -> Option<&Bedrock> {
-        for layer in &self.layers {
-            if let CellLayer::Bedrock(bedrock) = layer {
-                return Some(bedrock);
-            }
+        let mut height = 0.0;
+        if let Some(bedrock) = &self.bedrock {
+            height += bedrock.height;
         }
-        None
-    }
-
-    pub(crate) fn get_bedrock_layer_mut(&mut self) -> Option<&mut Bedrock> {
-        for layer in &mut self.layers {
-            if let CellLayer::Bedrock(bedrock) = layer {
-                return Some(bedrock);
-            }
+        if let Some(rock) = &self.rock {
+            height += rock.height;
         }
-        None
-    }
-
-    pub(crate) fn get_rock_layer(&self) -> Option<&Rock> {
-        for layer in &self.layers {
-            if let CellLayer::Rock(rock) = layer {
-                return Some(rock);
-            }
+        if let Some(sand) = &self.sand {
+            height += sand.height;
         }
-        None
-    }
-
-    pub(crate) fn get_rock_layer_mut(&mut self) -> Option<&mut Rock> {
-        for layer in &mut self.layers {
-            if let CellLayer::Rock(rock) = layer {
-                return Some(rock);
-            }
+        if let Some(humus) = &self.humus {
+            height += humus.height;
         }
-        None
-    }
-
-    pub(crate) fn get_sand_layer(&self) -> Option<&Sand> {
-        for layer in &self.layers {
-            if let CellLayer::Sand(sand) = layer {
-                return Some(sand);
-            }
-        }
-        None
-    }
-
-    pub(crate) fn get_sand_layer_mut(&mut self) -> Option<&mut Sand> {
-        for layer in &mut self.layers {
-            if let CellLayer::Sand(sand) = layer {
-                return Some(sand);
-            }
-        }
-        None
-    }
-
-    pub(crate) fn get_trees_layer(&self) -> Option<&Trees> {
-        for layer in &self.layers {
-            if let CellLayer::Trees(trees) = layer {
-                return Some(trees);
-            }
-        }
-        None
-    }
-
-    pub(crate) fn get_trees_layer_mut(&mut self) -> Option<&mut Trees> {
-        for layer in &mut self.layers {
-            if let CellLayer::Trees(trees) = layer {
-                return Some(trees);
-            }
-        }
-        None
-    }
-
-    pub(crate) fn get_bushes_layer(&self) -> Option<&Bushes> {
-        for layer in &self.layers {
-            if let CellLayer::Bushes(bushes) = layer {
-                return Some(bushes);
-            }
-        }
-        None
-    }
-
-    pub(crate) fn get_bushes_layer_mut(&mut self) -> Option<&mut Bushes> {
-        for layer in &mut self.layers {
-            if let CellLayer::Bushes(bushes) = layer {
-                return Some(bushes);
-            }
-        }
-        None
-    }
-
-    pub(crate) fn get_grass_layer(&self) -> Option<&Grasses> {
-        for layer in &self.layers {
-            if let CellLayer::Grasses(grasses) = layer {
-                return Some(grasses);
-            }
-        }
-        None
-    }
-
-    pub(crate) fn get_grasses_layer_mut(&mut self) -> Option<&mut Grasses> {
-        for layer in &mut self.layers {
-            if let CellLayer::Grasses(grasses) = layer {
-                return Some(grasses);
-            }
-        }
-        None
-    }
-
-    pub(crate) fn get_dead_vegetation_layer(&self) -> Option<&DeadVegetation> {
-        for layer in &self.layers {
-            if let CellLayer::DeadVegetation(dead_vegetation) = layer {
-                return Some(dead_vegetation);
-            }
-        }
-        None
-    }
-
-    pub(crate) fn get_dead_vegetation_layer_mut(&mut self) -> Option<&mut DeadVegetation> {
-        for layer in &mut self.layers {
-            if let CellLayer::DeadVegetation(dead_vegetation) = layer {
-                return Some(dead_vegetation);
-            }
-        }
-        None
+        height
+        // self.get_layers().iter().map(|l| l.get_height()).sum()
     }
 
     // *** LAYER INSERTERS ***
 
     pub(crate) fn add_rocks(&mut self, height: f32) {
-        if let Some(rocks) = self.get_rock_layer_mut() {
+        if let Some(rocks) = &mut self.rock {
             rocks.height += height;
         } else {
-            // assume bedrock is always layer 0 so insert after it
-            let rock = Rock { height };
-            let layers = &mut self.layers;
-            layers.insert(1, CellLayer::Rock(rock));
+            self.rock = Some(Rock{height});
         }
     }
 
     pub(crate) fn add_sand(&mut self, height: f32) {
-        if let Some(sand) = self.get_sand_layer_mut() {
+        if let Some(sand) = &mut self.sand {
             sand.height += height;
         } else {
-            // assume bedrock is always layer 0 and insert after rocks
-            let sand = Sand { height };
-            let index = if self.get_rock_layer().is_some() {
-                1
-            } else {
-                2
-            };
-            let layers = &mut self.layers;
-            layers.insert(index, CellLayer::Sand(sand));
-            }
+            self.sand = Some(Sand{height});
+        }
     }
 
     pub(crate) fn add_dead_vegetation(&mut self, biomass: f32) {
-        if let Some(dead_vegetation) = self.get_dead_vegetation_layer_mut() {
+        if let Some(dead_vegetation) = &mut self.dead_vegetation {
             dead_vegetation.biomass += biomass;
         } else {
-            // add new layer
-            let dead_vegetation = DeadVegetation { biomass };
-            let layer = CellLayer::DeadVegetation(dead_vegetation);
-            self.layers.push(layer);
+            self.dead_vegetation = Some(DeadVegetation{biomass});
         }
     }
 
     pub(crate) fn estimate_tree_biomass(&self) -> f32 {
         let mut biomass = 0.0;
         // assume max one tree layer
-        if let Some(trees) = self.get_trees_layer() {
+        if let Some(trees) = &self.trees {
             biomass += trees.estimate_biomass();
         }
         biomass
@@ -507,7 +404,7 @@ impl Cell {
     pub(crate) fn estimate_bush_biomass(&self) -> f32 {
         let mut biomass = 0.0;
         // assume max one bush layer
-        if let Some(bushes) = self.get_bushes_layer() {
+        if let Some(bushes) = &self.bushes {
             biomass += bushes.estimate_biomass();
         }
         biomass
@@ -517,14 +414,11 @@ impl Cell {
 impl CellLayer {
     pub(crate) fn get_height(&self) -> f32 {
         match self {
-            CellLayer::Bedrock(bedrock) => bedrock.height,
-            CellLayer::Rock(rock) => rock.height,
-            CellLayer::Sand(sand) => sand.height,
-            CellLayer::Humus(humus) => humus.height,
-            CellLayer::Trees(_)
-            | CellLayer::Bushes(_)
-            | CellLayer::Grasses(_)
-            | CellLayer::DeadVegetation(_) => 0.0,
+            CellLayer::Bedrock(Some(bedrock)) => bedrock.height,
+            CellLayer::Rock(Some(rock)) => rock.height,
+            CellLayer::Sand(Some(sand)) => sand.height,
+            CellLayer::Humus(Some(humus)) => humus.height,
+            _ => 0.0
         }
     }
 }
@@ -534,6 +428,7 @@ impl Trees {
         // based on allometric equation for red maples
         // source: https://academic.oup.com/forestry/article/87/1/129/602137#9934369
         // ln(biomass in kg) = -2.0470 + 2.3852 * ln(diameter in cm)
+        println!("self {self:?}");
         let average_height = self.plant_height_sum / self.number_of_plants as f32;
         let average_diameter = Trees::estimate_diameter_from_height(average_height);
         let average_biomass = f32::powf(E, -2.0470 + 2.3852 * f32::ln(average_diameter));
@@ -567,7 +462,7 @@ mod tests {
     use super::{Bedrock, CellIndex, Ecosystem, Humus, Rock, Sand};
     use crate::{
         constants,
-        ecology::{Bushes, Cell, CellLayer, Trees},
+        ecology::{Bushes, Cell, Trees},
     };
 
     #[test]
@@ -626,21 +521,27 @@ mod tests {
 
     #[test]
     fn test_get_height() {
-        let bedrock = CellLayer::Bedrock(Bedrock { height: 100.0 });
-        let rocks = CellLayer::Rock(Rock { height: 10.0 });
-        let sand = CellLayer::Sand(Sand { height: 5.0 });
-        let humus = CellLayer::Humus(Humus { height: 1.1 });
-        let trees = CellLayer::Trees(Trees {
+        let bedrock = Bedrock { height: 100.0 };
+        let rock = Rock { height: 10.0 };
+        let sand = Sand { height: 5.0 };
+        let humus = Humus { height: 1.1 };
+        let trees = Trees {
             number_of_plants: 1,
             plant_height_sum: 10.0,
             plant_age_sum: 10.0,
-        });
+        };
         let cell = Cell {
-            layers: vec![bedrock, rocks, sand, humus, trees],
             soil_moisture: 0.0,
             sunlight: 0.0,
             temperature: 0.0,
-        };
+            bedrock: Some(bedrock),
+            rock: Some(rock),
+            sand: Some(sand),
+            humus: Some(humus),
+            trees: None,
+            bushes: None,
+            grasses: None,
+            dead_vegetation: None};
         assert!(cell.get_height() == 116.1);
     }
 
@@ -652,11 +553,11 @@ mod tests {
         assert!(normal == unit_z, "Expected {unit_z}, actual: {normal}");
 
         let up = &mut ecosystem[CellIndex::new(4, 5)];
-        let bedrock = up.get_bedrock_layer_mut().unwrap();
+        let bedrock =&mut up.bedrock.as_mut().unwrap();
         bedrock.height = 99.0;
 
         let down = &mut ecosystem[CellIndex::new(6, 5)];
-        let bedrock = down.get_bedrock_layer_mut().unwrap();
+        let bedrock = &mut down.bedrock.as_mut().unwrap();
         bedrock.height = 101.0;
 
         let normal = ecosystem.get_normal(CellIndex::new(5, 5));
@@ -678,23 +579,23 @@ mod tests {
         println!("neighbor_height {neighbor_height}");
 
         let center = &mut ecosystem[CellIndex::new(5, 5)];
-        let bedrock = center.get_bedrock_layer_mut().unwrap();
+        let bedrock = &mut center.bedrock.as_mut().unwrap();
         bedrock.height = 101.0;
 
         let up = &mut ecosystem[CellIndex::new(5, 4)];
-        let bedrock = up.get_bedrock_layer_mut().unwrap();
+        let bedrock = &mut up.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
         let down = &mut ecosystem[CellIndex::new(5, 6)];
-        let bedrock = down.get_bedrock_layer_mut().unwrap();
+        let bedrock = &mut down.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
         let left = &mut ecosystem[CellIndex::new(4, 5)];
-        let bedrock = left.get_bedrock_layer_mut().unwrap();
+        let bedrock = &mut left.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
         let right = &mut ecosystem[CellIndex::new(6, 5)];
-        let bedrock = right.get_bedrock_layer_mut().unwrap();
+        let bedrock = &mut right.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
         let curvature = ecosystem.estimate_curvature(CellIndex::new(5, 5));
@@ -707,16 +608,23 @@ mod tests {
 
     #[test]
     fn test_estimate_tree_biomass() {
-        let layer = CellLayer::Trees(Trees {
+        let trees = Trees {
             number_of_plants: 1,
             plant_height_sum: 10.0,
             plant_age_sum: 10.0,
-        });
+        };
         let mut cell = Cell {
-            layers: vec![layer],
             soil_moisture: 0.0,
             sunlight: 0.0,
             temperature: 0.0,
+            bedrock: None,
+            rock: None,
+            sand: None,
+            humus: None,
+            trees: Some(trees),
+            bushes: None,
+            grasses: None,
+            dead_vegetation: None,
         };
         let biomass = cell.estimate_tree_biomass();
         let expected = 31.3472318147;
@@ -725,7 +633,7 @@ mod tests {
             "Expected biomass {expected}, actual biomass {biomass}"
         );
 
-        if let Some(trees) = cell.get_trees_layer_mut() {
+        if let Some(trees) = &mut cell.trees {
             trees.number_of_plants = 5;
             trees.plant_height_sum = 50.0;
         }
@@ -749,16 +657,23 @@ mod tests {
 
     #[test]
     fn test_estimate_bush_biomass() {
-        let layer = CellLayer::Bushes(Bushes {
+        let bushes = Bushes {
             number_of_plants: 1,
             plant_height_sum: 1.5,
             plant_age_sum: 1.0,
-        });
+        };
         let mut cell = Cell {
-            layers: vec![layer],
             soil_moisture: 0.0,
             sunlight: 0.0,
             temperature: 0.0,
+            bedrock: None,
+            rock: None,
+            sand: None,
+            humus: None,
+            trees: None,
+            bushes: Some(bushes),
+            grasses: None,
+            dead_vegetation: None,
         };
         let volume = cell.estimate_bush_biomass();
         let expected = 0.3104;
@@ -767,7 +682,7 @@ mod tests {
             "Expected volume {expected}, actual volume {volume}"
         );
 
-        if let Some(trees) = cell.get_bushes_layer_mut() {
+        if let Some(trees) = &mut cell.bushes {
             trees.number_of_plants = 5;
             trees.plant_height_sum = 7.5;
         }

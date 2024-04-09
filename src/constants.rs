@@ -1,5 +1,5 @@
 // https://extension.psu.edu/calculating-the-green-weight-of-wood-species
-pub(crate) const AREA_SIDE_LENGTH: usize = 100; // in cells, i.e. 1x1 km area
+pub(crate) const AREA_SIDE_LENGTH: usize = 100; // in cells, i.e. 100x100 km area
 pub(crate) const CELL_SIDE_LENGTH: f32 = 10.0; // in meters
 pub(crate) const DEFAULT_BEDROCK_HEIGHT: f32 = 100.0; // in meters
 
