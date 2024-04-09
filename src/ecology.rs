@@ -168,15 +168,13 @@ impl Ecosystem {
                 face_normals.push(down_right_normal);
             }
         }
-        println!("face normals {:?}", face_normals);
-        // average face normals
+        println!("face normals {face_normals:?}");
         let normal_sum: Vector3<f32> = face_normals.iter().sum();
         normal_sum.normalize()
     }
 
     pub(crate) fn estimate_curvature(self, index: CellIndex) -> f32 {
         let mut curvatures = vec![];
-        // get neighbors
         let neighbors = Cell::get_neighbors(&index);
 
         // get curvature along each edge
@@ -193,7 +191,7 @@ impl Ecosystem {
             curvatures.push(self.estimate_curvature_between_points(index, right));
         }
 
-        // take geometric mean
+        // take mean
         println!("curvatures: {curvatures:?}",);
         let sum = curvatures.iter().sum::<f32>();
         println!("sum {sum}");
@@ -280,7 +278,7 @@ impl Cell {
                 neighbors.northwest = Some(CellIndex { x: x - 1, y: y - 1 });
             }
             if y < constants::AREA_SIDE_LENGTH - 1 {
-                neighbors.southwest = Some(CellIndex { x: x - 1, y: y + 1 })
+                neighbors.southwest = Some(CellIndex { x: x - 1, y: y + 1 });
             }
         }
         if x < constants::AREA_SIDE_LENGTH - 1 {
@@ -289,7 +287,7 @@ impl Cell {
                 neighbors.northeast = Some(CellIndex { x: x + 1, y: y - 1 });
             }
             if y < constants::AREA_SIDE_LENGTH - 1 {
-                neighbors.southeast = Some(CellIndex { x: x + 1, y: y + 1 })
+                neighbors.southeast = Some(CellIndex { x: x + 1, y: y + 1 });
             }
         };
         if y > 0 {
@@ -329,6 +327,8 @@ impl Cell {
         self.layers.iter().map(CellLayer::get_height).sum()
     }
 
+    // ***LAYER GETTERS***
+
     pub(crate) fn get_bedrock_layer(&self) -> Option<&Bedrock> {
         for layer in &self.layers {
             if let CellLayer::Bedrock(bedrock) = layer {
@@ -365,13 +365,6 @@ impl Cell {
         None
     }
 
-    pub(crate) fn insert_rocks(&mut self, height: f32) {
-        // assume bedrock is always layer 0 so insert after it
-        let rock = Rock { height };
-        let layers = &mut self.layers;
-        layers.insert(1, CellLayer::Rock(rock));
-    }
-
     pub(crate) fn get_sand_layer(&self) -> Option<&Sand> {
         for layer in &self.layers {
             if let CellLayer::Sand(sand) = layer {
@@ -388,18 +381,6 @@ impl Cell {
             }
         }
         None
-    }
-
-    pub(crate) fn insert_sand(&mut self, height: f32) {
-        // assume bedrock is always layer 0 and insert after rocks
-        let sand = Sand { height };
-        let index = if self.get_rock_layer().is_some() {
-            1
-        } else {
-            2
-        };
-        let layers = &mut self.layers;
-        layers.insert(index, CellLayer::Sand(sand));
     }
 
     pub(crate) fn get_trees_layer(&self) -> Option<&Trees> {
@@ -472,6 +453,35 @@ impl Cell {
             }
         }
         None
+    }
+
+    // *** LAYER INSERTERS ***
+
+    pub(crate) fn add_rocks(&mut self, height: f32) {
+        if let Some(rocks) = self.get_rock_layer_mut() {
+            rocks.height += height;
+        } else {
+            // assume bedrock is always layer 0 so insert after it
+            let rock = Rock { height };
+            let layers = &mut self.layers;
+            layers.insert(1, CellLayer::Rock(rock));
+        }
+    }
+
+    pub(crate) fn add_sand(&mut self, height: f32) {
+        if let Some(sand) = self.get_sand_layer_mut() {
+            sand.height += height;
+        } else {
+            // assume bedrock is always layer 0 and insert after rocks
+            let sand = Sand { height };
+            let index = if self.get_rock_layer().is_some() {
+                1
+            } else {
+                2
+            };
+            let layers = &mut self.layers;
+            layers.insert(index, CellLayer::Sand(sand));
+            }
     }
 
     pub(crate) fn add_dead_vegetation(&mut self, biomass: f32) {
@@ -604,18 +614,13 @@ mod tests {
 
         let index = CellIndex::new(1, 99);
         let neighbors = Cell::get_neighbors(&index);
-        println!("neighbors {:?}", neighbors.as_array());
-        println!(
-            "neighbors flattened {:?}",
-            neighbors.as_array().into_iter().flatten()
-        );
         assert!(neighbors.north == Some(CellIndex::new(1, 98)));
         assert!(neighbors.east == Some(CellIndex::new(2, 99)));
         assert!(neighbors.west == Some(CellIndex::new(0, 99)));
         assert!(neighbors.south.is_none());
         assert!(neighbors.northeast == Some(CellIndex::new(2, 98)));
         assert!(neighbors.southeast.is_none());
-        assert!(neighbors.northwest == Some(CellIndex::new(1, 98)));
+        assert!(neighbors.northwest == Some(CellIndex::new(0, 98)));
         assert!(neighbors.southwest.is_none());
     }
 

@@ -8,7 +8,7 @@ use crate::{
 trait Event {
     // returns the event to propagate and next cell index to propagate to
     fn apply_event_and_propagate(
-        &self,
+        self,
         ecosystem: &mut Ecosystem,
         index: CellIndex,
     ) -> Option<(Events, CellIndex)>;
@@ -27,14 +27,14 @@ enum Events {
 
 impl Event for Events {
     fn apply_event_and_propagate(
-        &self,
+        self,
         ecosystem: &mut Ecosystem,
         index: CellIndex,
     ) -> Option<(Events, CellIndex)> {
         match self {
             Events::Rainfall => todo!(),
             Events::ThermalStress => todo!(),
-            Events::Lightning => self.apply_and_propagate_lightning_event(ecosystem, index),
+            Events::Lightning => Self::apply_and_propagate_lightning_event(ecosystem, index),
             Events::RockSlide => todo!(),
             Events::SandSlide => todo!(),
             Events::HumusSlide => todo!(),
@@ -46,16 +46,14 @@ impl Event for Events {
 
 impl Events {
     fn apply_and_propagate_lightning_event(
-        &self,
         ecosystem: &mut Ecosystem,
         index: CellIndex,
     ) -> Option<(Events, CellIndex)> {
         let strike_probability = Self::compute_probability_of_lightning_damage(ecosystem, &index);
-        self.apply_and_propagate_lightning_event_helper(ecosystem, index, strike_probability)
+        Self::apply_and_propagate_lightning_event_helper(ecosystem, index, strike_probability)
     }
 
     fn apply_and_propagate_lightning_event_helper(
-        &self,
         ecosystem: &mut Ecosystem,
         index: CellIndex,
         strike_probability: f32,
@@ -80,7 +78,7 @@ impl Events {
             / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
 
         // simplifying assumption 1: half of the volume becomes rock and the other half sand
-        // simplifying assumption 2: distribute volume evenly to 8 neighbors and self (instead of being based on slope and relative elevation)
+        // simplifying assumption 2: distribute volume evenly to 8 neighbors and cell (instead of being based on slope and relative elevation)
         let neighbors = Cell::get_neighbors(&index);
         let num_neighbors = neighbors.len() + 1;
         let volume_per_cell =
@@ -89,33 +87,18 @@ impl Events {
             volume_per_cell / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
 
         // add to cell
-        Self::add_rocks_and_sand(cell, height_per_cell);
+        cell.add_rocks(height_per_cell);
+        cell.add_sand(height_per_cell);
 
         // add to neighbors
         for index in neighbors.as_array().into_iter().flatten() {
-            // if let Some(index) = index {
             let neighbor = &mut ecosystem[index];
-            Self::add_rocks_and_sand(neighbor, height_per_cell);
-            // }
+            neighbor.add_rocks(height_per_cell);
+            neighbor.add_sand(height_per_cell);
         }
 
         // does not propagate
         None
-    }
-
-    fn add_rocks_and_sand(cell: &mut Cell, height: f32) {
-        let rock_layer = cell.get_rock_layer_mut();
-        if let Some(rocks) = rock_layer {
-            rocks.height += height;
-        } else {
-            cell.insert_rocks(height);
-        }
-        let sand_layer = cell.get_sand_layer_mut();
-        if let Some(sand) = sand_layer {
-            sand.height += height;
-        } else {
-            cell.insert_sand(height);
-        }
     }
 
     fn compute_probability_of_lightning_damage(ecosystem: &Ecosystem, index: &CellIndex) -> f32 {
@@ -239,11 +222,7 @@ mod tests {
         let cell = &mut ecosystem[index];
         cell.layers.push(trees);
 
-        let result = Events::Lightning.apply_and_propagate_lightning_event_helper(
-            &mut ecosystem,
-            index,
-            1.0,
-        );
+        let result = Events::apply_and_propagate_lightning_event_helper(&mut ecosystem, index, 1.0);
         assert!(result.is_none());
 
         // verify trees are dead
