@@ -1,3 +1,7 @@
+pub(crate) const SCREEN_WIDTH: usize = 900;
+pub(crate) const SCREEN_HEIGHT: usize = 700;
+pub(crate) const SPEED: f32 = 1.5;
+
 // https://extension.psu.edu/calculating-the-green-weight-of-wood-species
 pub(crate) const AREA_SIDE_LENGTH: usize = 100; // in cells, i.e. 100x100 km area
 pub(crate) const CELL_SIDE_LENGTH: f32 = 10.0; // in meters

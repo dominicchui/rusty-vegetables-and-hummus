@@ -170,7 +170,7 @@ mod tests {
             trees: Some(trees),
             bushes: None,
             grasses: None,
-            dead_vegetation:None,
+            dead_vegetation: None,
         };
         let biomass = cell.estimate_tree_biomass();
         println!("biomass {biomass}");

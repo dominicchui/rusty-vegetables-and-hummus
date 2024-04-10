@@ -1,11 +1,13 @@
-use std::{collections::HashSet, ffi::CString};
-
 use itertools::Itertools;
+use nalgebra::Vector3;
+use render::EcosystemRenderable;
 use sdl2::{
     keyboard::Keycode,
     sys::{SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency},
 };
+use std::{collections::HashSet, ffi::CString};
 
+mod camera;
 mod constants;
 mod ecology; // apparently naming this "ecosystem" breaks rust analyzer :(
 mod events;
@@ -44,10 +46,13 @@ fn main() {
         gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
     // set up shared state for window
-    let width = 900;
-    let height = 700;
     unsafe {
-        gl::Viewport(0, 0, width, height);
+        gl::Viewport(
+            0,
+            0,
+            constants::SCREEN_WIDTH as i32,
+            constants::SCREEN_HEIGHT as i32,
+        );
         gl::ClearColor(1.0, 1.0, 1.0, 1.0);
         gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         gl::Enable(gl::DEPTH_TEST);
@@ -62,6 +67,8 @@ fn main() {
     )
     .unwrap();
     let shader_program = render_gl::Program::from_shaders(&[vert_shader, frag_shader]).unwrap();
+
+    let mut ecosystem = EcosystemRenderable::init();
 
     // main loop
     let mut paused = true;
@@ -84,7 +91,7 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
         shader_program.set_used();
-        // simulation.draw(shader_program.id());
+        ecosystem.draw(shader_program.id());
         unsafe {
             let mut err: gl::types::GLenum = gl::GetError();
             while err != gl::NO_ERROR {
@@ -121,8 +128,8 @@ fn main() {
         if new_keys.contains(&Keycode::T) {
             paused = !paused;
         }
-        let dirs = keys.into_iter().filter_map(convert_key_to_dir).collect_vec();
-        // move_camera(&mut simulation, dirs, elapsed_secs as f32);
+        let dirs = keys.into_iter().filter_map(convert_key_to_dir).collect();
+        move_camera(&mut ecosystem, dirs, elapsed_secs as f32);
 
         window.gl_swap_window();
     }
@@ -140,27 +147,27 @@ fn convert_key_to_dir(key: Keycode) -> Option<Direction> {
     }
 }
 
-// fn move_camera(sim: &mut Simulation, dirs: HashSet<Direction>, delta_seconds: f32) {
-//     let mut m_forward = 0.0;
-//     let mut m_sideways = 0.0;
-//     let mut m_vertical = 0.0;
+fn move_camera(ecosystem: &mut EcosystemRenderable, dirs: HashSet<Direction>, delta_seconds: f32) {
+    let mut m_forward = 0.0;
+    let mut m_sideways = 0.0;
+    let mut m_vertical = 0.0;
 
-//     for dir in dirs {
-//         match dir {
-//             Direction::Up => m_vertical += SPEED,
-//             Direction::Down => m_vertical -= SPEED,
-//             Direction::Left => m_sideways -= SPEED,
-//             Direction::Right => m_sideways += SPEED,
-//             Direction::Forward => m_forward += SPEED,
-//             Direction::Back => m_forward -= SPEED,
-//         }
-//     }
-//     let mut look = sim.m_camera.m_look;
-//     look.y = 0.0;
-//     look = look.normalize();
-//     let perp: Vector3<f32> = Vector3::new(-look.z, 0.0, look.x).normalize();
-//     let mut move_vec: Vector3<f32> =
-//         m_forward * look + m_sideways * perp + m_vertical * Vector3::new(0.0, 1.0, 0.0);
-//     move_vec *= delta_seconds;
-//     sim.m_camera.move_camera(move_vec);
-// }
+    for dir in dirs {
+        match dir {
+            Direction::Up => m_vertical += constants::SPEED,
+            Direction::Down => m_vertical -= constants::SPEED,
+            Direction::Left => m_sideways -= constants::SPEED,
+            Direction::Right => m_sideways += constants::SPEED,
+            Direction::Forward => m_forward += constants::SPEED,
+            Direction::Back => m_forward -= constants::SPEED,
+        }
+    }
+    let mut look = ecosystem.m_camera.m_look;
+    look.y = 0.0;
+    look = look.normalize();
+    let perp: Vector3<f32> = Vector3::new(-look.z, 0.0, look.x).normalize();
+    let mut move_vec: Vector3<f32> =
+        m_forward * look + m_sideways * perp + m_vertical * Vector3::new(0.0, 1.0, 0.0);
+    move_vec *= delta_seconds;
+    ecosystem.m_camera.move_camera(move_vec);
+}

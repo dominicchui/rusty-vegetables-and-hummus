@@ -9,7 +9,7 @@ use std::{
 
 pub struct Ecosystem {
     // Array of structs
-    cells: Vec<Vec<Cell>>,
+    pub(crate) cells: Vec<Vec<Cell>>,
     // latitude, wind direction and strength, etc.
 }
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
@@ -128,9 +128,9 @@ impl Ecosystem {
             cells: vec![
                 vec![
                     Cell {
-                        soil_moisture:0.0,
-                        sunlight:0.0,
-                        temperature:0.0, 
+                        soil_moisture: 0.0,
+                        sunlight: 0.0,
+                        temperature: 0.0,
                         bedrock: Some(Bedrock {
                             height: constants::DEFAULT_BEDROCK_HEIGHT,
                         }),
@@ -140,7 +140,7 @@ impl Ecosystem {
                         trees: None,
                         bushes: None,
                         grasses: None,
-                        dead_vegetation:None,
+                        dead_vegetation: None,
                     };
                     constants::AREA_SIDE_LENGTH
                 ];
@@ -182,7 +182,7 @@ impl Ecosystem {
                 face_normals.push(down_right_normal);
             }
         }
-        println!("face normals {face_normals:?}");
+        // println!("face normals {face_normals:?}");
         let normal_sum: Vector3<f32> = face_normals.iter().sum();
         normal_sum.normalize()
     }
@@ -206,9 +206,9 @@ impl Ecosystem {
         }
 
         // take mean
-        println!("curvatures: {curvatures:?}",);
+        // println!("curvatures: {curvatures:?}",);
         let sum = curvatures.iter().sum::<f32>();
-        println!("sum {sum}");
+        // println!("sum {sum}");
         sum / curvatures.len() as f32
     }
 
@@ -218,11 +218,11 @@ impl Ecosystem {
         let p1 = self.get_position_of_cell(&i1);
         let p2 = self.get_position_of_cell(&i2);
 
-        println!("normals {n1}, {n2}");
-        println!("positions {p1}, {p2}");
+        // println!("normals {n1}, {n2}");
+        // println!("positions {p1}, {p2}");
         let num = (n2 - n1).dot(&(p2 - p1));
         let denom = (f32::powf((p2 - p1).norm(), 2.0));
-        println!("num {num}, denom {denom}");
+        // println!("num {num}, denom {denom}");
         num / denom
         // (n2 - n1).dot(&(p2-p1)) / (f32::powf((p2 - p1).norm(),2.0))
     }
@@ -281,12 +281,12 @@ impl Neighbors {
 
 impl Cell {
     // pub(crate) fn get_layers(&self) -> Vec<&CellLayer> {
-    //     vec![&CellLayer::Bedrock(self.bedrock), 
-    //     &CellLayer::Sand(self.sand), 
-    //     &CellLayer::Humus(self.humus), 
-    //     &CellLayer::Rock(self.rock), 
-    //     &CellLayer::Trees(self.trees), 
-    //     &CellLayer::Bushes(self.bushes), 
+    //     vec![&CellLayer::Bedrock(self.bedrock),
+    //     &CellLayer::Sand(self.sand),
+    //     &CellLayer::Humus(self.humus),
+    //     &CellLayer::Rock(self.rock),
+    //     &CellLayer::Trees(self.trees),
+    //     &CellLayer::Bushes(self.bushes),
     //     &CellLayer::Grasses(self.grasses),
     //     &CellLayer::DeadVegetation(self.dead_vegetation)]
     // }
@@ -363,7 +363,6 @@ impl Cell {
             height += humus.height;
         }
         height
-        // self.get_layers().iter().map(|l| l.get_height()).sum()
     }
 
     // *** LAYER INSERTERS ***
@@ -372,7 +371,7 @@ impl Cell {
         if let Some(rocks) = &mut self.rock {
             rocks.height += height;
         } else {
-            self.rock = Some(Rock{height});
+            self.rock = Some(Rock { height });
         }
     }
 
@@ -380,7 +379,7 @@ impl Cell {
         if let Some(sand) = &mut self.sand {
             sand.height += height;
         } else {
-            self.sand = Some(Sand{height});
+            self.sand = Some(Sand { height });
         }
     }
 
@@ -388,7 +387,7 @@ impl Cell {
         if let Some(dead_vegetation) = &mut self.dead_vegetation {
             dead_vegetation.biomass += biomass;
         } else {
-            self.dead_vegetation = Some(DeadVegetation{biomass});
+            self.dead_vegetation = Some(DeadVegetation { biomass });
         }
     }
 
@@ -418,7 +417,7 @@ impl CellLayer {
             CellLayer::Rock(Some(rock)) => rock.height,
             CellLayer::Sand(Some(sand)) => sand.height,
             CellLayer::Humus(Some(humus)) => humus.height,
-            _ => 0.0
+            _ => 0.0,
         }
     }
 }
@@ -428,7 +427,6 @@ impl Trees {
         // based on allometric equation for red maples
         // source: https://academic.oup.com/forestry/article/87/1/129/602137#9934369
         // ln(biomass in kg) = -2.0470 + 2.3852 * ln(diameter in cm)
-        println!("self {self:?}");
         let average_height = self.plant_height_sum / self.number_of_plants as f32;
         let average_diameter = Trees::estimate_diameter_from_height(average_height);
         let average_biomass = f32::powf(E, -2.0470 + 2.3852 * f32::ln(average_diameter));
@@ -538,10 +536,11 @@ mod tests {
             rock: Some(rock),
             sand: Some(sand),
             humus: Some(humus),
-            trees: None,
+            trees: Some(trees),
             bushes: None,
             grasses: None,
-            dead_vegetation: None};
+            dead_vegetation: None,
+        };
         assert!(cell.get_height() == 116.1);
     }
 
@@ -553,7 +552,7 @@ mod tests {
         assert!(normal == unit_z, "Expected {unit_z}, actual: {normal}");
 
         let up = &mut ecosystem[CellIndex::new(4, 5)];
-        let bedrock =&mut up.bedrock.as_mut().unwrap();
+        let bedrock = &mut up.bedrock.as_mut().unwrap();
         bedrock.height = 99.0;
 
         let down = &mut ecosystem[CellIndex::new(6, 5)];
@@ -576,7 +575,7 @@ mod tests {
         // assert!(curvature == expected, "Expected {expected}, actual {curvature}", );
 
         let neighbor_height = 100.0 + f32::sqrt(3.0) / 2.0;
-        println!("neighbor_height {neighbor_height}");
+        // println!("neighbor_height {neighbor_height}");
 
         let center = &mut ecosystem[CellIndex::new(5, 5)];
         let bedrock = &mut center.bedrock.as_mut().unwrap();
@@ -627,7 +626,7 @@ mod tests {
             dead_vegetation: None,
         };
         let biomass = cell.estimate_tree_biomass();
-        let expected = 31.3472318147;
+        let expected = 31.3472;
         assert!(
             approx_eq!(f32, biomass, expected, epsilon = 0.001),
             "Expected biomass {expected}, actual biomass {biomass}"
@@ -638,7 +637,7 @@ mod tests {
             trees.plant_height_sum = 50.0;
         }
         let biomass = cell.estimate_tree_biomass();
-        let expected = 156.7361590735;
+        let expected = 156.7362;
         assert!(
             approx_eq!(f32, biomass, expected, epsilon = 0.001),
             "Expected volume {biomass}, actual volume {biomass}"
