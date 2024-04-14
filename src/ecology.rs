@@ -22,6 +22,12 @@ impl CellIndex {
     pub fn new(x: usize, y: usize) -> Self {
         Self { x, y }
     }
+
+    pub fn get_from_flat_index(i: usize) -> Self {
+        let y = i / constants::AREA_SIDE_LENGTH;
+        let x = i % constants::AREA_SIDE_LENGTH;
+        CellIndex::new(x, y)
+    }
 }
 
 impl Index<CellIndex> for Ecosystem {
@@ -149,6 +155,72 @@ impl Ecosystem {
         }
     }
 
+    pub fn init_test() -> Self {
+        let mut ecosystem = Ecosystem {
+            cells: vec![
+                vec![
+                    Cell {
+                        soil_moisture: 0.0,
+                        sunlight: 0.0,
+                        temperature: 0.0,
+                        bedrock: Some(Bedrock {
+                            height: constants::DEFAULT_BEDROCK_HEIGHT,
+                        }),
+                        rock: None,
+                        sand: None,
+                        humus: None,
+                        trees: None,
+                        bushes: None,
+                        grasses: None,
+                        dead_vegetation: None,
+                    };
+                    constants::AREA_SIDE_LENGTH
+                ];
+                constants::AREA_SIDE_LENGTH
+            ],
+        };
+        let neighbor_height = 101.0 + f32::sqrt(3.0) / 2.0;
+        let c_i = 2;
+
+        let center = &mut ecosystem[CellIndex::new(c_i, c_i)];
+        let bedrock = &mut center.bedrock.as_mut().unwrap();
+        bedrock.height = 103.0;
+
+        let up = &mut ecosystem[CellIndex::new(c_i, c_i-1)];
+        let bedrock = &mut up.bedrock.as_mut().unwrap();
+        bedrock.height = neighbor_height;
+
+        let down = &mut ecosystem[CellIndex::new(c_i, c_i+1)];
+        let bedrock = &mut down.bedrock.as_mut().unwrap();
+        bedrock.height = neighbor_height;
+
+        let left = &mut ecosystem[CellIndex::new(c_i-1,c_i)];
+        let bedrock = &mut left.bedrock.as_mut().unwrap();
+        bedrock.height = neighbor_height;
+
+        let right = &mut ecosystem[CellIndex::new(c_i+1, c_i)];
+        let bedrock = &mut right.bedrock.as_mut().unwrap();
+        bedrock.height = neighbor_height;
+
+        let up_left = &mut ecosystem[CellIndex::new(c_i-1, c_i-1)];
+        let bedrock = &mut up_left.bedrock.as_mut().unwrap();
+        bedrock.height = neighbor_height;
+
+        let up_right = &mut ecosystem[CellIndex::new(c_i-1, c_i+1)];
+        let bedrock = &mut up_right.bedrock.as_mut().unwrap();
+        bedrock.height = neighbor_height;
+
+        let down_left = &mut ecosystem[CellIndex::new(c_i+1, c_i-1)];
+        let bedrock = &mut down_left.bedrock.as_mut().unwrap();
+        bedrock.height = neighbor_height;
+
+        let down_right = &mut ecosystem[CellIndex::new(c_i+1, c_i+1)];
+        let bedrock = &mut down_right.bedrock.as_mut().unwrap();
+        bedrock.height = neighbor_height;
+
+        ecosystem
+    }    
+
     pub(crate) fn get_normal(&self, index: CellIndex) -> Vector3<f32> {
         // normal of a vertex is the normalized sum of the normals of the adjacent faces
         // cells are vertices and the triangles formed between the cell and its 4 adjacent cells are faces
@@ -220,8 +292,8 @@ impl Ecosystem {
 
         // println!("normals {n1}, {n2}");
         // println!("positions {p1}, {p2}");
-        let num = (n2 - n1).dot(&(p2 - p1));
-        let denom = (f32::powf((p2 - p1).norm(), 2.0));
+        let num = (n2 - n1).dot(&(p2 - p1).normalize());
+        let denom = (p2 - p1).norm();
         // println!("num {num}, denom {denom}");
         num / denom
         // (n2 - n1).dot(&(p2-p1)) / (f32::powf((p2 - p1).norm(),2.0))
@@ -351,6 +423,7 @@ impl Cell {
     pub(crate) fn get_height(self: &Cell) -> f32 {
         let mut height = 0.0;
         if let Some(bedrock) = &self.bedrock {
+            // println!("bedrock height {}", bedrock.height);
             height += bedrock.height;
         }
         if let Some(rock) = &self.rock {

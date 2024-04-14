@@ -5,7 +5,8 @@ use sdl2::{
     keyboard::Keycode,
     sys::{SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency},
 };
-use std::{collections::HashSet, ffi::CString};
+use simulation::Simulation;
+use std::{collections::HashSet, ffi::CString, thread, time};
 
 mod camera;
 mod constants;
@@ -13,6 +14,7 @@ mod ecology; // apparently naming this "ecosystem" breaks rust analyzer :(
 mod events;
 mod render;
 mod render_gl;
+mod simulation;
 
 #[derive(PartialEq, Eq, Hash)]
 pub(crate) enum Direction {
@@ -68,7 +70,7 @@ fn main() {
     .unwrap();
     let shader_program = render_gl::Program::from_shaders(&[vert_shader, frag_shader]).unwrap();
 
-    let mut ecosystem = EcosystemRenderable::init();
+    let mut simulation = Simulation::init();
 
     // main loop
     let mut paused = true;
@@ -91,7 +93,8 @@ fn main() {
             gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
         }
         shader_program.set_used();
-        ecosystem.draw(shader_program.id());
+        simulation.draw(shader_program.id(), gl::TRIANGLES);
+        simulation.draw(shader_program.id(), gl::LINES);
         unsafe {
             let mut err: gl::types::GLenum = gl::GetError();
             while err != gl::NO_ERROR {
@@ -106,10 +109,6 @@ fn main() {
         unsafe {
             now = SDL_GetPerformanceCounter();
             elapsed_secs = (now - start) as f64 / SDL_GetPerformanceFrequency() as f64;
-
-            if !paused {
-                // simulation.update(elapsed_secs, adaptive_time_step);
-            }
         }
         start = now;
 
@@ -124,12 +123,15 @@ fn main() {
         // Get the difference between the new and old sets.
         let new_keys = &keys - &prev_keys;
         prev_keys = keys.clone();
+        if new_keys.contains(&Keycode::Space) {
+            simulation.take_time_step();
+        }
 
         if new_keys.contains(&Keycode::T) {
             paused = !paused;
         }
         let dirs = keys.into_iter().filter_map(convert_key_to_dir).collect();
-        move_camera(&mut ecosystem, dirs, elapsed_secs as f32);
+        move_camera(&mut simulation.ecosystem, dirs, elapsed_secs as f32);
 
         window.gl_swap_window();
     }

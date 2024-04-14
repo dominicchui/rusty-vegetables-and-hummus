@@ -14,7 +14,7 @@ trait Event {
     ) -> Option<(Events, CellIndex)>;
 }
 
-enum Events {
+pub(crate) enum Events {
     Rainfall,
     ThermalStress,
     Lightning,
@@ -45,7 +45,7 @@ impl Event for Events {
 }
 
 impl Events {
-    fn apply_and_propagate_lightning_event(
+    pub(crate) fn apply_and_propagate_lightning_event(
         ecosystem: &mut Ecosystem,
         index: CellIndex,
     ) -> Option<(Events, CellIndex)> {
@@ -74,8 +74,9 @@ impl Events {
 
         // destroy some bedrock and scatter as rocks and sand to nearby cells
         let bedrock = &mut cell.bedrock.as_mut().unwrap();
-        bedrock.height -= constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME
-            / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
+        let lost_height = constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME
+        / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
+        bedrock.height -= lost_height;
 
         // simplifying assumption 1: half of the volume becomes rock and the other half sand
         // simplifying assumption 2: distribute volume evenly to 8 neighbors and cell (instead of being based on slope and relative elevation)
@@ -87,14 +88,14 @@ impl Events {
             volume_per_cell / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
 
         // add to cell
-        cell.add_rocks(height_per_cell);
-        cell.add_sand(height_per_cell);
+        cell.add_rocks(height_per_cell / 2.0);
+        cell.add_sand(height_per_cell / 2.0);
 
         // add to neighbors
         for index in neighbors.as_array().into_iter().flatten() {
             let neighbor = &mut ecosystem[index];
-            neighbor.add_rocks(height_per_cell);
-            neighbor.add_sand(height_per_cell);
+            neighbor.add_rocks(height_per_cell / 2.0);
+            neighbor.add_sand(height_per_cell / 2.0);
         }
 
         // does not propagate
@@ -106,7 +107,7 @@ impl Events {
         // k_L is maximum probability
         // k_lc is scaling factor
         // k_ls is minimum curvature required
-        0.001
+        1.0
     }
 }
 
@@ -173,7 +174,6 @@ mod tests {
             dead_vegetation: None,
         };
         let biomass = cell.estimate_tree_biomass();
-        println!("biomass {biomass}");
 
         Events::kill_trees(&mut cell);
 
@@ -196,7 +196,6 @@ mod tests {
         trees.number_of_plants = 5;
         trees.plant_height_sum = 150.0;
         let biomass_2 = cell.estimate_tree_biomass();
-        println!("biomass_2 {biomass_2}");
 
         Events::kill_trees(&mut cell);
 
