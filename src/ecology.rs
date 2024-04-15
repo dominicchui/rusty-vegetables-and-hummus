@@ -4,6 +4,7 @@ use nalgebra::Vector3;
 use crate::constants;
 use std::{
     f32::consts::E,
+    fmt,
     ops::{Index, IndexMut},
 };
 
@@ -12,10 +13,22 @@ pub struct Ecosystem {
     pub(crate) cells: Vec<Vec<Cell>>,
     // latitude, wind direction and strength, etc.
 }
-#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub(crate) struct CellIndex {
     x: usize,
     y: usize,
+}
+
+impl fmt::Display for CellIndex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "({}, {})", self.x, self.y)
+    }
+}
+
+impl fmt::Debug for CellIndex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        fmt::Display::fmt(self, f)
+    }
 }
 
 impl CellIndex {
@@ -186,40 +199,59 @@ impl Ecosystem {
         let bedrock = &mut center.bedrock.as_mut().unwrap();
         bedrock.height = 103.0;
 
-        let up = &mut ecosystem[CellIndex::new(c_i, c_i-1)];
+        let up = &mut ecosystem[CellIndex::new(c_i, c_i - 1)];
         let bedrock = &mut up.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
-        let down = &mut ecosystem[CellIndex::new(c_i, c_i+1)];
+        let down = &mut ecosystem[CellIndex::new(c_i, c_i + 1)];
         let bedrock = &mut down.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
-        let left = &mut ecosystem[CellIndex::new(c_i-1,c_i)];
+        let left = &mut ecosystem[CellIndex::new(c_i - 1, c_i)];
         let bedrock = &mut left.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
-        let right = &mut ecosystem[CellIndex::new(c_i+1, c_i)];
+        let right = &mut ecosystem[CellIndex::new(c_i + 1, c_i)];
         let bedrock = &mut right.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
-        let up_left = &mut ecosystem[CellIndex::new(c_i-1, c_i-1)];
+        let up_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i - 1)];
         let bedrock = &mut up_left.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
-        let up_right = &mut ecosystem[CellIndex::new(c_i-1, c_i+1)];
+        let up_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i + 1)];
         let bedrock = &mut up_right.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
-        let down_left = &mut ecosystem[CellIndex::new(c_i+1, c_i-1)];
+        let down_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i - 1)];
         let bedrock = &mut down_left.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
-        let down_right = &mut ecosystem[CellIndex::new(c_i+1, c_i+1)];
+        let down_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i + 1)];
         let bedrock = &mut down_right.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
         ecosystem
-    }    
+    }
+
+    pub fn init_sand_dune() -> Self {
+        let mut ecosystem = Self::init();
+
+        let c_i = 2;
+        let center = &mut ecosystem[CellIndex::new(c_i, c_i)];
+        center.add_sand(2.0);
+
+        let down = &mut ecosystem[CellIndex::new(c_i, c_i + 1)];
+        down.add_sand(2.0);
+
+        let right = &mut ecosystem[CellIndex::new(c_i + 1, c_i)];
+        right.add_sand(2.0);
+
+        let down_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i + 1)];
+        down_right.add_sand(3.0);
+
+        ecosystem
+    }
 
     pub(crate) fn get_normal(&self, index: CellIndex) -> Vector3<f32> {
         // normal of a vertex is the normalized sum of the normals of the adjacent faces
@@ -299,10 +331,29 @@ impl Ecosystem {
         // (n2 - n1).dot(&(p2-p1)) / (f32::powf((p2 - p1).norm(),2.0))
     }
 
-    fn get_position_of_cell(&self, index: &CellIndex) -> Vector3<f32> {
+    pub(crate) fn get_position_of_cell(&self, index: &CellIndex) -> Vector3<f32> {
         let cell = &self[*index];
         let height = cell.get_height();
         Vector3::new(index.x as f32, index.y as f32, height)
+    }
+
+    pub(crate) fn get_slope_between_points(&self, i1: CellIndex, i2: CellIndex) -> f32 {
+        //s(q)=(E(p)−E(q))/∥p−q∥
+        let height_1 = self[i1].get_height();
+        let height_2 = self[i2].get_height();
+        let pos_1 = self.get_position_of_cell(&i1);
+        let pos_2 = self.get_position_of_cell(&i2);
+        (height_1 - height_2) / (pos_1 - pos_2).norm()
+    }
+
+    // returns angle in degrees
+    pub(crate) fn get_angle(slope: f32) -> f32 {
+        if slope < 0.0 {
+            let slope = -slope;
+            -f32::asin(slope).to_degrees()
+        } else {
+            f32::asin(slope).to_degrees()
+        }
     }
 }
 
@@ -438,7 +489,7 @@ impl Cell {
         height
     }
 
-    // *** LAYER INSERTERS ***
+    // *** LAYER ADDERS ***
 
     pub(crate) fn add_rocks(&mut self, height: f32) {
         if let Some(rocks) = &mut self.rock {
@@ -463,6 +514,15 @@ impl Cell {
             self.dead_vegetation = Some(DeadVegetation { biomass });
         }
     }
+
+    // *** LAYER REMOVERS ***
+    pub(crate) fn remove_sand(&mut self, height: f32) {
+        if let Some(sand) = &mut self.sand {
+            sand.height -= height;
+        }
+    }
+
+    // *** BIOMASS ESTIMATERS ***
 
     pub(crate) fn estimate_tree_biomass(&self) -> f32 {
         let mut biomass = 0.0;
@@ -675,6 +735,46 @@ mod tests {
         assert!(
             curvature == expected,
             "Expected {expected}, actual {curvature}",
+        );
+    }
+
+    #[test]
+    fn test_get_slope() {
+        let mut ecosystem = Ecosystem::init();
+        let slope = ecosystem.get_slope_between_points(CellIndex::new(3, 3), CellIndex::new(3, 2));
+        assert!(slope == 0.0);
+
+        let center = &mut ecosystem[CellIndex::new(3, 3)];
+        let bedrock = &mut center.bedrock.as_mut().unwrap();
+        bedrock.height = 1.0;
+
+        let up = &mut ecosystem[CellIndex::new(3, 2)];
+        let bedrock = &mut up.bedrock.as_mut().unwrap();
+        bedrock.height = 2.0;
+        let slope = ecosystem.get_slope_between_points(CellIndex::new(3, 3), CellIndex::new(3, 2));
+        let expected = -0.707;
+        assert!(
+            approx_eq!(f32, slope, expected, epsilon = 0.001),
+            "Expected {expected}, actual {slope}"
+        );
+        assert!(
+            Ecosystem::get_angle(slope) == -45.0,
+            "expected {}, actual {}",
+            -45.0,
+            Ecosystem::get_angle(slope)
+        );
+
+        let slope = ecosystem.get_slope_between_points(CellIndex::new(3, 2), CellIndex::new(3, 3));
+        let expected = 0.707;
+        assert!(
+            approx_eq!(f32, slope, expected, epsilon = 0.001),
+            "Expected {expected}, actual {slope}"
+        );
+        assert!(
+            Ecosystem::get_angle(slope) == 45.0,
+            "expected {}, actual {}",
+            45.0,
+            Ecosystem::get_angle(slope)
         );
     }
 

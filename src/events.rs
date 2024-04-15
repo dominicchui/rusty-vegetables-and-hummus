@@ -1,5 +1,6 @@
-use std::f64::consts::E;
+use std::{collections::HashMap, f64::consts::E};
 
+use nalgebra::Vector3;
 use rand::Rng;
 
 use crate::{
@@ -7,15 +8,12 @@ use crate::{
     ecology::{Cell, CellIndex, Ecosystem},
 };
 
-trait Event {
-    // returns the event to propagate and next cell index to propagate to
-    fn apply_event_and_propagate(
-        self,
-        ecosystem: &mut Ecosystem,
-        index: CellIndex,
-    ) -> Option<(Events, CellIndex)>;
-}
+// trait Event {
+//     // performs and propagates the event until it is finished
+//     fn apply_event(self, ecosystem: &mut Ecosystem, index: CellIndex);
+// }
 
+#[derive(PartialEq, Debug)]
 pub(crate) enum Events {
     Rainfall,
     ThermalStress,
@@ -27,35 +25,32 @@ pub(crate) enum Events {
     Vegetation,
 }
 
-impl Event for Events {
-    fn apply_event_and_propagate(
-        self,
-        ecosystem: &mut Ecosystem,
-        index: CellIndex,
-    ) -> Option<(Events, CellIndex)> {
-        match self {
-            Events::Rainfall => todo!(),
-            Events::ThermalStress => todo!(),
-            Events::Lightning => Self::apply_and_propagate_lightning_event(ecosystem, index),
-            Events::RockSlide => todo!(),
-            Events::SandSlide => todo!(),
-            Events::HumusSlide => todo!(),
-            Events::Fire => todo!(),
-            Events::Vegetation => todo!(),
+impl Events {
+    pub fn apply_event(self, ecosystem: &mut Ecosystem, index: CellIndex) {
+        let mut event_option = Some((self, index));
+        while let Some((event, index)) = event_option {
+            event_option = match event {
+                Events::Rainfall => todo!(),
+                Events::ThermalStress => todo!(),
+                Events::Lightning => Self::apply_lightning_event(ecosystem, index),
+                Events::RockSlide => todo!(),
+                Events::SandSlide => Self::apply_sand_slide_event(ecosystem, index),
+                Events::HumusSlide => todo!(),
+                Events::Fire => todo!(),
+                Events::Vegetation => todo!(),
+            };
         }
     }
-}
 
-impl Events {
-    pub(crate) fn apply_and_propagate_lightning_event(
+    pub(crate) fn apply_lightning_event(
         ecosystem: &mut Ecosystem,
         index: CellIndex,
     ) -> Option<(Events, CellIndex)> {
         let strike_probability = Self::compute_probability_of_lightning_damage(ecosystem, index);
-        Self::apply_and_propagate_lightning_event_helper(ecosystem, index, strike_probability)
+        Self::apply_lightning_event_helper(ecosystem, index, strike_probability)
     }
 
-    fn apply_and_propagate_lightning_event_helper(
+    fn apply_lightning_event_helper(
         ecosystem: &mut Ecosystem,
         index: CellIndex,
         strike_probability: f32,
@@ -77,7 +72,7 @@ impl Events {
         // destroy some bedrock and scatter as rocks and sand to nearby cells
         let bedrock = &mut cell.bedrock.as_mut().unwrap();
         let lost_height = constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME
-        / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
+            / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
         bedrock.height -= lost_height;
 
         // simplifying assumption 1: half of the volume becomes rock and the other half sand
@@ -110,7 +105,7 @@ impl Events {
         // k_lc is scaling factor
         // k_ls is minimum curvature required
         let curvature = ecosystem.estimate_curvature(index);
-        println!("index {index:?}, curvature {curvature}");
+        println!("index {index}, curvature {curvature}");
 
         let max_prob = 1.0;
         let scaling_factor = 1.0;
@@ -121,6 +116,94 @@ impl Events {
         println!("prob {prob}");
 
         prob
+    }
+
+    pub(crate) fn apply_sand_slide_event(
+        ecosystem: &mut Ecosystem,
+        index: CellIndex,
+    ) -> Option<(Events, CellIndex)> {
+        let mut critical_neighbors: HashMap<CellIndex, f32> = HashMap::new();
+        let neighbors = Cell::get_neighbors(&index);
+        for neighbor_index in neighbors.as_array().into_iter().flatten() {
+            let slope = ecosystem.get_slope_between_points(index, neighbor_index);
+            let angle = Ecosystem::get_angle(slope);
+            if angle >= constants::CRITICAL_ANGLE_SAND {
+                critical_neighbors.insert(neighbor_index, slope);
+            }
+        }
+        // if current cell does not have a slope of at least the critical angle, no slide and no propagation
+        if critical_neighbors.is_empty() {
+            return None;
+        } else {
+            // else randomly select neighbor weighted by slope
+            let mut neighbor_probabilities: HashMap<CellIndex, f32> = HashMap::new();
+            let slope_sum: f32 = critical_neighbors.values().sum();
+            for (neighbor, slope) in critical_neighbors {
+                let prob = slope / slope_sum;
+                neighbor_probabilities.insert(neighbor, prob);
+            }
+            let mut rng = rand::thread_rng();
+            let mut rand: f32 = rng.gen();
+            for (neighbor, prob) in neighbor_probabilities {
+                rand -= prob;
+                if rand < 0.0 {
+                    // to propagate, reduce appropriate amount of sand and move it to neighbor
+                    let sand_height =
+                        Events::compute_sand_height_to_slide(ecosystem, index, neighbor);
+                    // println!("Sand of height {sand_height} sliding from {index} to {neighbor}");
+                    let cell = &mut ecosystem[index];
+                    cell.remove_sand(sand_height);
+
+                    let neighbor_cell = &mut ecosystem[neighbor];
+                    neighbor_cell.add_sand(sand_height);
+
+                    return Some((Events::SandSlide, neighbor));
+                }
+            }
+        }
+
+        None
+    }
+    fn compute_ideal_slide_height(
+        pos_1: Vector3<f32>,
+        pos_2: Vector3<f32>,
+        critical_angle: f32,
+    ) -> f32 {
+        let critical_slope = f32::sin(critical_angle.to_radians());
+        let k = (critical_slope
+            * critical_slope
+            * (f32::powf(pos_1.x - pos_2.x, 2.0) + f32::powf(pos_1.y - pos_2.y, 2.0)))
+            / (1.0 - critical_slope * critical_slope);
+        pos_2.z + f32::sqrt(k)
+    }
+
+    fn compute_sand_height_to_slide(
+        ecosystem: &Ecosystem,
+        origin: CellIndex,
+        target: CellIndex,
+    ) -> f32 {
+        let cell = &ecosystem[origin];
+        if let Some(sand) = &cell.sand {
+            let sand_height = sand.height;
+            let origin_pos = ecosystem.get_position_of_cell(&origin);
+            let target_pos = ecosystem.get_position_of_cell(&target);
+            let ideal_height = Events::compute_ideal_slide_height(
+                origin_pos,
+                target_pos,
+                constants::CRITICAL_ANGLE_SAND,
+            );
+
+            let non_sand_height = cell.get_height() - sand_height;
+
+            // simplifying assumption: half of the excess slides away
+            if non_sand_height >= ideal_height {
+                sand_height / 2.0
+            } else {
+                ((non_sand_height + sand_height) - ideal_height) / 2.0
+            }
+        } else {
+            0.0
+        }
     }
 }
 
@@ -160,6 +243,9 @@ impl Events {
 
 #[cfg(test)]
 mod tests {
+    use float_cmp::approx_eq;
+    use nalgebra::Vector3;
+
     use crate::{
         constants,
         ecology::{Cell, CellIndex, CellLayer, Ecosystem, Trees},
@@ -247,7 +333,7 @@ mod tests {
         let cell = &mut ecosystem[index];
         cell.trees = Some(trees);
 
-        let result = Events::apply_and_propagate_lightning_event_helper(&mut ecosystem, index, 1.0);
+        let result = Events::apply_lightning_event_helper(&mut ecosystem, index, 1.0);
         assert!(result.is_none());
 
         // verify trees are dead
@@ -292,5 +378,54 @@ mod tests {
             assert!(sand_layer.is_some());
             assert!(sand_layer.as_ref().unwrap().height == height_per_cell);
         }
+    }
+
+    #[test]
+    fn test_compute_max_slide_height() {
+        let pos_1 = Vector3::new(0.0, 0.0, 1.0);
+        let pos_2 = Vector3::new(0.0, 1.0, 0.0);
+        let critical_angle = 34.0;
+        let new_height = Events::compute_ideal_slide_height(pos_1, pos_2, critical_angle);
+        let expected = 0.676;
+        assert!(
+            approx_eq!(f32, new_height, expected, epsilon = 0.01),
+            "Expected {expected}, actual {new_height}"
+        );
+    }
+
+    #[test]
+    fn test_apply_sand_slide_event() {
+        let mut ecosystem = Ecosystem::init();
+        let center = &mut ecosystem[CellIndex::new(3, 3)];
+        let bedrock = &mut center.bedrock.as_mut().unwrap();
+        bedrock.height = 0.0;
+        center.add_sand(1.0);
+
+        let up = &mut ecosystem[CellIndex::new(3, 2)];
+        let bedrock = &mut up.bedrock.as_mut().unwrap();
+        bedrock.height = 0.0;
+
+        let propagation = Events::apply_sand_slide_event(&mut ecosystem, CellIndex::new(3, 3));
+
+        assert!(propagation.is_some());
+        let (event, index) = propagation.unwrap();
+        assert_eq!(event, Events::SandSlide);
+        assert_eq!(index, CellIndex::new(3, 2));
+
+        let center = &mut ecosystem[CellIndex::new(3, 3)];
+        let sand_height = center.sand.as_ref().unwrap().height;
+        let expected = 0.838;
+        assert!(
+            approx_eq!(f32, sand_height, expected, epsilon = 0.01),
+            "Expected {expected}, actual {sand_height}"
+        );
+
+        let up = &mut ecosystem[CellIndex::new(3, 2)];
+        let sand_height = up.sand.as_ref().unwrap().height;
+        let expected = 0.162;
+        assert!(
+            approx_eq!(f32, sand_height, expected, epsilon = 0.01),
+            "Expected {expected}, actual {sand_height}"
+        );
     }
 }

@@ -18,7 +18,7 @@ impl Simulation {
     pub fn draw(&mut self, program_id: GLuint, render_mode: gl::types::GLuint) {
         self.ecosystem.draw(program_id, render_mode);
     }
-    
+
     pub fn take_time_step(&mut self) {
         // iterate over all cells
         let num_cells = constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH;
@@ -35,16 +35,16 @@ impl Simulation {
             let index = CellIndex::get_from_flat_index(i);
             total_height += self.ecosystem.ecosystem[index].get_height();
         }
-        println!("average height {}", total_height/num_cells as f32);
+        // println!("average height {}", total_height / num_cells as f32);
 
         for i in vec {
             // apply random event
             // just lightning for now
             let index = CellIndex::get_from_flat_index(i);
-            Events::apply_and_propagate_lightning_event(&mut self.ecosystem.ecosystem, index);
+            // Events::apply_event(Events::Lightning, &mut self.ecosystem.ecosystem, index);
+            Events::apply_event(Events::SandSlide, &mut self.ecosystem.ecosystem, index);
         }
 
         self.ecosystem.update_vertices();
     }
-
 }

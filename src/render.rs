@@ -26,7 +26,7 @@ pub(crate) struct EcosystemRenderable {
 
 impl EcosystemRenderable {
     pub fn init() -> Self {
-        let ecosystem = Ecosystem::init_test();
+        let ecosystem = Ecosystem::init_sand_dune();
 
         // initialize based on the cell grid of the ecosystem
         let num_cells = constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH;
@@ -43,14 +43,11 @@ impl EcosystemRenderable {
                 let index = CellIndex::new(i, j);
                 let cell = &ecosystem[index];
                 let height = cell.get_height();
-                println!("height {height}");
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(ecosystem.get_normal(index));
                 colors.push(Vector3::new(0.61, 0.46, 0.33));
             }
         }
-        println!("verts {verts:?}");
-        println!("normals {normals:?}");
         // simple tessellation of square grid
         for i in 0i32..constants::AREA_SIDE_LENGTH as i32 - 1 {
             for j in 0i32..constants::AREA_SIDE_LENGTH as i32 - 1 {
@@ -68,7 +65,6 @@ impl EcosystemRenderable {
                 lines.push(Vector2::new(bottom, bottom_right));
             }
         }
-        println!("faces {faces:?}");
 
         let mut ecosystem_render = EcosystemRenderable {
             ecosystem,
@@ -91,7 +87,7 @@ impl EcosystemRenderable {
         let far_plane = 1000.0;
         let middle = constants::AREA_SIDE_LENGTH as f32 / 2.0;
         let center = Vector3::new(middle, middle, constants::DEFAULT_BEDROCK_HEIGHT);
-        let eye: Vector3<f32> = center + Vector3::new(0.0, -3.0,10.0);
+        let eye: Vector3<f32> = center + Vector3::new(0.0, -5.0, 5.0);
         let target: Vector3<f32> = center;
         ecosystem_render.m_camera.look_at(eye, target);
         ecosystem_render.m_camera.set_orbit_point(target);
@@ -183,10 +179,8 @@ impl EcosystemRenderable {
             gl::BindBuffer(gl::ARRAY_BUFFER, ecosystem_render.m_lines_vbo);
             gl::BufferData(
                 gl::ARRAY_BUFFER,
-                (std::mem::size_of::<f32>()
-                    * (verts.len() * 3))
-                    as gl::types::GLsizeiptr,
-                    verts.as_ptr() as *const gl::types::GLvoid,
+                (std::mem::size_of::<f32>() * (verts.len() * 3)) as gl::types::GLsizeiptr,
+                verts.as_ptr() as *const gl::types::GLvoid,
                 gl::DYNAMIC_DRAW,
             );
             gl::BindBuffer(gl::ARRAY_BUFFER, 0);
