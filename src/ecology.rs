@@ -259,7 +259,7 @@ impl Ecosystem {
         normal_sum.normalize()
     }
 
-    pub(crate) fn estimate_curvature(self, index: CellIndex) -> f32 {
+    pub(crate) fn estimate_curvature(&self, index: CellIndex) -> f32 {
         let mut curvatures = vec![];
         let neighbors = Cell::get_neighbors(&index);
 
