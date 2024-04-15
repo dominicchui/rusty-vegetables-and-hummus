@@ -43,6 +43,8 @@ impl Simulation {
             let index = CellIndex::get_from_flat_index(i);
             // Events::apply_event(Events::Lightning, &mut self.ecosystem.ecosystem, index);
             Events::apply_event(Events::SandSlide, &mut self.ecosystem.ecosystem, index);
+            Events::apply_event(Events::RockSlide, &mut self.ecosystem.ecosystem, index);
+            Events::apply_event(Events::HumusSlide, &mut self.ecosystem.ecosystem, index);
         }
 
         self.ecosystem.update_vertices();

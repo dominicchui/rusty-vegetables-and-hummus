@@ -1,5 +1,5 @@
-pub(crate) const SCREEN_WIDTH: usize = 900;
-pub(crate) const SCREEN_HEIGHT: usize = 700;
+pub(crate) const SCREEN_WIDTH: usize = 1200;
+pub(crate) const SCREEN_HEIGHT: usize = 800;
 pub(crate) const SPEED: f32 = 10.0;
 
 // https://extension.psu.edu/calculating-the-green-weight-of-wood-species

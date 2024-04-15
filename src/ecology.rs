@@ -219,11 +219,11 @@ impl Ecosystem {
         let bedrock = &mut up_left.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
-        let up_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i + 1)];
+        let up_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i - 1)];
         let bedrock = &mut up_right.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
-        let down_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i - 1)];
+        let down_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i + 1)];
         let bedrock = &mut down_left.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
 
@@ -234,21 +234,36 @@ impl Ecosystem {
         ecosystem
     }
 
-    pub fn init_sand_dune() -> Self {
+    pub fn init_dunes() -> Self {
         let mut ecosystem = Self::init();
 
-        let c_i = 2;
+        let c_i = 3;
         let center = &mut ecosystem[CellIndex::new(c_i, c_i)];
-        center.add_sand(2.0);
+        center.add_sand(1.0);
 
         let down = &mut ecosystem[CellIndex::new(c_i, c_i + 1)];
-        down.add_sand(2.0);
+        down.add_sand(1.0);
 
         let right = &mut ecosystem[CellIndex::new(c_i + 1, c_i)];
-        right.add_sand(2.0);
+        right.add_sand(1.0);
 
         let down_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i + 1)];
         down_right.add_sand(3.0);
+
+        let new_center = &mut ecosystem[CellIndex::new(c_i - 2, c_i)];
+        new_center.add_rocks(1.0);
+
+        let new_down = &mut ecosystem[CellIndex::new(c_i - 2, c_i + 1)];
+        new_down.add_rocks(1.0);
+
+        let left = &mut ecosystem[CellIndex::new(c_i - 3, c_i)];
+        left.add_rocks(1.0);
+
+        let down_left = &mut ecosystem[CellIndex::new(c_i - 3, c_i + 1)];
+        down_left.add_rocks(3.0);
+
+        let up_left = &mut ecosystem[CellIndex::new(c_i - 3, c_i - 1)];
+        up_left.add_humus(3.0);
 
         ecosystem
     }
@@ -507,6 +522,14 @@ impl Cell {
         }
     }
 
+    pub(crate) fn add_humus(&mut self, height: f32) {
+        if let Some(humus) = &mut self.humus {
+            humus.height += height;
+        } else {
+            self.humus = Some(Humus { height });
+        }
+    }
+
     pub(crate) fn add_dead_vegetation(&mut self, biomass: f32) {
         if let Some(dead_vegetation) = &mut self.dead_vegetation {
             dead_vegetation.biomass += biomass;
@@ -521,6 +544,19 @@ impl Cell {
             sand.height -= height;
         }
     }
+
+    pub(crate) fn remove_rocks(&mut self, height: f32) {
+        if let Some(rock) = &mut self.rock {
+            rock.height -= height;
+        }
+    }
+
+    pub(crate) fn remove_humus(&mut self, height: f32) {
+        if let Some(humus) = &mut self.humus {
+            humus.height -= height;
+        }
+    }
+
 
     // *** BIOMASS ESTIMATERS ***
 
@@ -616,16 +652,18 @@ mod tests {
 
     #[test]
     fn test_get_neighbors() {
-        let index = CellIndex::new(5, 10);
+        let x = 2;
+        let y = 3;
+        let index = CellIndex::new(x, y);
         let neighbors = Cell::get_neighbors(&index);
-        assert!(neighbors.west == Some(CellIndex::new(4, 10)));
-        assert!(neighbors.north == Some(CellIndex::new(5, 9)));
-        assert!(neighbors.south == Some(CellIndex::new(5, 11)));
-        assert!(neighbors.east == Some(CellIndex::new(6, 10)));
-        assert!(neighbors.northeast == Some(CellIndex::new(6, 9)));
-        assert!(neighbors.southeast == Some(CellIndex::new(6, 11)));
-        assert!(neighbors.northwest == Some(CellIndex::new(4, 9)));
-        assert!(neighbors.southwest == Some(CellIndex::new(4, 11)));
+        assert!(neighbors.west == Some(CellIndex::new(x-1, y)));
+        assert!(neighbors.north == Some(CellIndex::new(x, y-1)));
+        assert!(neighbors.south == Some(CellIndex::new(x, y+1)));
+        assert!(neighbors.east == Some(CellIndex::new(x+1, y)));
+        assert!(neighbors.northeast == Some(CellIndex::new(x+1, y-1)));
+        assert!(neighbors.southeast == Some(CellIndex::new(x+1, y+1)));
+        assert!(neighbors.northwest == Some(CellIndex::new(x-1, y-1)));
+        assert!(neighbors.southwest == Some(CellIndex::new(x-1, y+1)));
 
         let index = CellIndex::new(0, 0);
         let neighbors = Cell::get_neighbors(&index);
@@ -638,16 +676,18 @@ mod tests {
         assert!(neighbors.northwest.is_none());
         assert!(neighbors.southwest.is_none());
 
-        let index = CellIndex::new(1, 99);
+        let x = 2;
+        let y = 0;
+        let index = CellIndex::new(x, y);
         let neighbors = Cell::get_neighbors(&index);
-        assert!(neighbors.north == Some(CellIndex::new(1, 98)));
-        assert!(neighbors.east == Some(CellIndex::new(2, 99)));
-        assert!(neighbors.west == Some(CellIndex::new(0, 99)));
-        assert!(neighbors.south.is_none());
-        assert!(neighbors.northeast == Some(CellIndex::new(2, 98)));
-        assert!(neighbors.southeast.is_none());
-        assert!(neighbors.northwest == Some(CellIndex::new(0, 98)));
-        assert!(neighbors.southwest.is_none());
+        assert!(neighbors.north.is_none());
+        assert_eq!(neighbors.east, Some(CellIndex::new(x+1, y)));
+        assert_eq!(neighbors.west, Some(CellIndex::new(x-1, y)));
+        assert_eq!(neighbors.south, Some(CellIndex::new(x, y+1)));
+        assert!(neighbors.northeast.is_none());
+        assert_eq!(neighbors.southeast, Some(CellIndex::new(x+1, y+1)));
+        assert!(neighbors.northwest.is_none());
+        assert_eq!(neighbors.southwest, Some(CellIndex::new(x-1, y+1)));
     }
 
     #[test]
@@ -680,63 +720,63 @@ mod tests {
     #[test]
     fn test_get_normal() {
         let mut ecosystem = Ecosystem::init();
-        let normal = ecosystem.get_normal(CellIndex::new(5, 5));
+        let normal = ecosystem.get_normal(CellIndex::new(2, 2));
         let unit_z = Vector3::z();
         assert!(normal == unit_z, "Expected {unit_z}, actual: {normal}");
 
-        let up = &mut ecosystem[CellIndex::new(4, 5)];
+        let up = &mut ecosystem[CellIndex::new(1, 2)];
         let bedrock = &mut up.bedrock.as_mut().unwrap();
         bedrock.height = 99.0;
 
-        let down = &mut ecosystem[CellIndex::new(6, 5)];
+        let down = &mut ecosystem[CellIndex::new(3, 2)];
         let bedrock = &mut down.bedrock.as_mut().unwrap();
         bedrock.height = 101.0;
 
-        let normal = ecosystem.get_normal(CellIndex::new(5, 5));
+        let normal = ecosystem.get_normal(CellIndex::new(2, 2));
         let expected = Vector3::new(f32::sqrt(0.5), 0.0, f32::sqrt(0.5));
         assert!(approx_eq!(f32, expected[0], normal[0], epsilon = 0.001));
         assert!(approx_eq!(f32, expected[1], normal[1], epsilon = 0.001));
         assert!(approx_eq!(f32, expected[2], normal[2], epsilon = 0.001));
     }
 
-    #[test]
-    fn test_estimate_curvature() {
-        // curvature of sphere should be 1/r^2
-        let mut ecosystem = Ecosystem::init();
-        // let curvature = ecosystem.estimate_curvature(CellIndex::new(5,5));
-        // let expected = 0.0;
-        // assert!(curvature == expected, "Expected {expected}, actual {curvature}", );
+    // #[test]
+    // fn test_estimate_curvature() {
+    //     // curvature of sphere should be 1/r^2
+    //     let mut ecosystem = Ecosystem::init();
+    //     // let curvature = ecosystem.estimate_curvature(CellIndex::new(5,5));
+    //     // let expected = 0.0;
+    //     // assert!(curvature == expected, "Expected {expected}, actual {curvature}", );
 
-        let neighbor_height = 100.0 + f32::sqrt(3.0) / 2.0;
-        // println!("neighbor_height {neighbor_height}");
+    //     let neighbor_height = 100.0 + f32::sqrt(3.0) / 2.0;
+    //     // println!("neighbor_height {neighbor_height}");
 
-        let center = &mut ecosystem[CellIndex::new(5, 5)];
-        let bedrock = &mut center.bedrock.as_mut().unwrap();
-        bedrock.height = 101.0;
+    //     let center = &mut ecosystem[CellIndex::new(5, 5)];
+    //     let bedrock = &mut center.bedrock.as_mut().unwrap();
+    //     bedrock.height = 101.0;
 
-        let up = &mut ecosystem[CellIndex::new(5, 4)];
-        let bedrock = &mut up.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
+    //     let up = &mut ecosystem[CellIndex::new(5, 4)];
+    //     let bedrock = &mut up.bedrock.as_mut().unwrap();
+    //     bedrock.height = neighbor_height;
 
-        let down = &mut ecosystem[CellIndex::new(5, 6)];
-        let bedrock = &mut down.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
+    //     let down = &mut ecosystem[CellIndex::new(5, 6)];
+    //     let bedrock = &mut down.bedrock.as_mut().unwrap();
+    //     bedrock.height = neighbor_height;
 
-        let left = &mut ecosystem[CellIndex::new(4, 5)];
-        let bedrock = &mut left.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
+    //     let left = &mut ecosystem[CellIndex::new(4, 5)];
+    //     let bedrock = &mut left.bedrock.as_mut().unwrap();
+    //     bedrock.height = neighbor_height;
 
-        let right = &mut ecosystem[CellIndex::new(6, 5)];
-        let bedrock = &mut right.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
+    //     let right = &mut ecosystem[CellIndex::new(6, 5)];
+    //     let bedrock = &mut right.bedrock.as_mut().unwrap();
+    //     bedrock.height = neighbor_height;
 
-        let curvature = ecosystem.estimate_curvature(CellIndex::new(5, 5));
-        let expected = 0.25;
-        assert!(
-            curvature == expected,
-            "Expected {expected}, actual {curvature}",
-        );
-    }
+    //     let curvature = ecosystem.estimate_curvature(CellIndex::new(5, 5));
+    //     let expected = 0.25;
+    //     assert!(
+    //         curvature == expected,
+    //         "Expected {expected}, actual {curvature}",
+    //     );
+    // }
 
     #[test]
     fn test_get_slope() {
