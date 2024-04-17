@@ -82,24 +82,25 @@ pub(crate) enum CellLayer {
     DeadVegetation(Option<DeadVegetation>),
 }
 
+// use the methods to access and modify height of these layers
 #[derive(Clone)]
 pub(crate) struct Bedrock {
-    pub(crate) height: f32,
+    height: f32,
 }
 
 #[derive(Clone)]
 pub(crate) struct Rock {
-    pub(crate) height: f32,
+    height: f32,
 }
 
 #[derive(Clone)]
 pub(crate) struct Sand {
-    pub(crate) height: f32,
+    height: f32,
 }
 
 #[derive(Clone)]
 pub(crate) struct Humus {
-    pub(crate) height: f32,
+    height: f32,
 }
 
 #[derive(Clone, Debug)]
@@ -511,6 +512,13 @@ impl Cell {
     }
 
     // *** LAYER ADDERS ***
+    pub(crate) fn add_bedrock(&mut self, height: f32) {
+        if let Some(bedrock) = &mut self.bedrock {
+            bedrock.height += height;
+        } else {
+            self.bedrock = Some(Bedrock { height });
+        }
+    }
 
     pub(crate) fn add_rocks(&mut self, height: f32) {
         if let Some(rocks) = &mut self.rock {
@@ -571,6 +579,14 @@ impl Cell {
 
     // *** HEIGHT GETTERS ***
 
+    pub(crate) fn get_height_of_bedrock(&self) -> f32 {
+        if let Some(bedrock) = &self.bedrock {
+            bedrock.height
+        } else {
+            0.0
+        }
+    }
+
     pub(crate) fn get_height_of_sand(&self) -> f32 {
         if let Some(sand) = &self.sand {
             sand.height
@@ -592,6 +608,15 @@ impl Cell {
             rock.height
         } else {
             0.0
+        }
+    }
+
+    // *** HEIGHT SETTERS ***
+    pub(crate) fn set_height_of_bedrock(&mut self, height: f32) {
+        if let Some(bedrock) = &mut self.bedrock {
+            bedrock.height = height;
+        } else {
+            self.bedrock = Some(Bedrock { height });
         }
     }
 
@@ -646,7 +671,7 @@ impl Cell {
     pub(crate) fn estimate_bushes_density(bushes: &Bushes) -> f32 {
         let n = bushes.number_of_plants;
         let biomass = bushes.estimate_biomass();
-        let average_biomass = biomass / n  as f32;
+        let average_biomass = biomass / n as f32;
         let average_crown_area = Bushes::estimate_crown_area_from_biomass(average_biomass);
         let crown_area_sum = average_crown_area * n as f32;
         crown_area_sum / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH)
@@ -718,11 +743,7 @@ impl Bushes {
         // based on allometric equation for rhododendron mariesii
         // source: https://link.springer.com/article/10.1007/s11056-023-09963-z
         // ln(crown area in m^2) = (ln(biomass in kg) + 0.435) / 1.324
-        f32::powf(
-            std::f32::consts::E,
-            (f32::ln(biomass) + 0.435) / 1.324
-        )
-
+        f32::powf(std::f32::consts::E, (f32::ln(biomass) + 0.435) / 1.324)
     }
 }
 

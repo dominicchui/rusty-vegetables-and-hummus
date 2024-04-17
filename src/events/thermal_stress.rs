@@ -89,7 +89,7 @@ mod tests {
 
         // slightly raise the cell to create a hill and a slope
         let cell = &mut ecosystem[index];
-        cell.bedrock.as_mut().unwrap().height = 101.0;
+        cell.set_height_of_bedrock(101.0);
 
         let prob = Events::compute_thermal_fracture_probability(&ecosystem, index);
         let expected = 0.0707;
@@ -100,10 +100,10 @@ mod tests {
 
         // set the hill to be a neighboring cell instead
         let cell = &mut ecosystem[index];
-        cell.bedrock.as_mut().unwrap().height = 100.0;
+        cell.set_height_of_bedrock(100.0);
 
         let cell = &mut ecosystem[CellIndex::new(2, 1)];
-        cell.bedrock.as_mut().unwrap().height = 101.0;
+        cell.set_height_of_bedrock(101.0);
 
         let prob = Events::compute_thermal_fracture_probability(&ecosystem, index);
         let expected = 0.0707;
@@ -114,7 +114,7 @@ mod tests {
 
         // add some sand and humus
         let cell = &mut ecosystem[CellIndex::new(2, 2)];
-        cell.bedrock.as_mut().unwrap().height = 98.0;
+        cell.set_height_of_bedrock(98.0);
         cell.add_sand(1.0);
         cell.add_humus(1.0);
 
@@ -160,7 +160,8 @@ mod tests {
         let expected = 0.0707
             / (1.0
                 + GRANULAR_DAMPENING_CONSTANT * 2.0
-                + VEGETATION_DAMPENING_CONSTANT * (expected_trees_density + expected_bushes_density));
+                + VEGETATION_DAMPENING_CONSTANT
+                    * (expected_trees_density + expected_bushes_density));
         assert!(
             approx_eq!(f32, prob, expected, epsilon = 0.0001),
             "Expected {expected}, actual {prob}"
@@ -177,11 +178,11 @@ mod tests {
         let expected = 0.0707
             / (1.0
                 + GRANULAR_DAMPENING_CONSTANT * 2.0
-                + VEGETATION_DAMPENING_CONSTANT * (expected_trees_density + expected_bushes_density + grass_density));
+                + VEGETATION_DAMPENING_CONSTANT
+                    * (expected_trees_density + expected_bushes_density + grass_density));
         assert!(
             approx_eq!(f32, prob, expected, epsilon = 0.0001),
             "Expected {expected}, actual {prob}"
         );
-
     }
 }
