@@ -23,6 +23,8 @@ const NUM_CELLS: usize = AREA_SIDE_LENGTH * AREA_SIDE_LENGTH;
 const AREA_SIZE: f32 = (CELL_SIDE_LENGTH * CELL_SIDE_LENGTH) * NUM_CELLS as f32 / 1000000.0; // in km^3
 pub(crate) const LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME: f32 = 4.0; //4.0; // m^3
 
+// THERMAL STRESS
+
 // https://www.sciencedirect.com/science/article/pii/S2351989421002973
 // density of highland grasses
 pub(crate) const GRASS_DENSITY: f32 = 1.0; // kg/m^3

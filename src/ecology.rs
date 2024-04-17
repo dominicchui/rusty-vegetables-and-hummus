@@ -169,29 +169,7 @@ impl Ecosystem {
     }
 
     pub fn init_test() -> Self {
-        let mut ecosystem = Ecosystem {
-            cells: vec![
-                vec![
-                    Cell {
-                        soil_moisture: 0.0,
-                        sunlight: 0.0,
-                        temperature: 0.0,
-                        bedrock: Some(Bedrock {
-                            height: constants::DEFAULT_BEDROCK_HEIGHT,
-                        }),
-                        rock: None,
-                        sand: None,
-                        humus: None,
-                        trees: None,
-                        bushes: None,
-                        grasses: None,
-                        dead_vegetation: None,
-                    };
-                    constants::AREA_SIDE_LENGTH
-                ];
-                constants::AREA_SIDE_LENGTH
-            ],
-        };
+        let mut ecosystem = Self::init();
         let neighbor_height = 101.0 + f32::sqrt(3.0) / 2.0;
         let c_i = 2;
 
@@ -278,7 +256,6 @@ impl Ecosystem {
         cell.add_sand(3.0);
         let cell = &mut ecosystem[CellIndex::new(0, 4)];
         cell.add_sand(4.0);
-
 
         // let cell = &mut ecosystem[CellIndex::new(2, 2)];
         // cell.add_sand(2.0);
@@ -444,17 +421,6 @@ impl Neighbors {
 // }
 
 impl Cell {
-    // pub(crate) fn get_layers(&self) -> Vec<&CellLayer> {
-    //     vec![&CellLayer::Bedrock(self.bedrock),
-    //     &CellLayer::Sand(self.sand),
-    //     &CellLayer::Humus(self.humus),
-    //     &CellLayer::Rock(self.rock),
-    //     &CellLayer::Trees(self.trees),
-    //     &CellLayer::Bushes(self.bushes),
-    //     &CellLayer::Grasses(self.grasses),
-    //     &CellLayer::DeadVegetation(self.dead_vegetation)]
-    // }
-
     pub(crate) fn get_neighbors(index: &CellIndex) -> Neighbors {
         let x = index.x;
         let y = index.y;
@@ -565,6 +531,12 @@ impl Cell {
     }
 
     // *** LAYER REMOVERS ***
+    pub(crate) fn remove_bedrock(&mut self, height: f32) {
+        if let Some(bedrock) = &mut self.bedrock {
+            bedrock.height -= height;
+        }
+    }
+
     pub(crate) fn remove_sand(&mut self, height: f32) {
         if let Some(sand) = &mut self.sand {
             sand.height -= height;
@@ -583,7 +555,33 @@ impl Cell {
         }
     }
 
-    // *** BIOMASS ESTIMATERS ***
+    // *** HEIGHT GETTERS ***
+
+    pub(crate) fn get_height_of_sand(&self) -> f32 {
+        if let Some(sand) = &self.sand {
+            sand.height
+        } else {
+            0.0
+        }
+    }
+
+    pub(crate) fn get_height_of_humus(&self) -> f32 {
+        if let Some(humus) = &self.humus {
+            humus.height
+        } else {
+            0.0
+        }
+    }
+
+    pub(crate) fn get_height_of_rock(&self) -> f32 {
+        if let Some(rock) = &self.rock {
+            rock.height
+        } else {
+            0.0
+        }
+    }
+
+    // *** ECOLOGICAL ESTIMATERS ***
 
     pub(crate) fn estimate_tree_biomass(&self) -> f32 {
         let mut biomass = 0.0;
@@ -601,6 +599,11 @@ impl Cell {
             biomass += bushes.estimate_biomass();
         }
         biomass
+    }
+
+    pub(crate) fn estimate_vegetation_density(&self) -> f32 {
+        // todo
+        0.0
     }
 }
 

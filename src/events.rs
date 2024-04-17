@@ -1,7 +1,8 @@
-mod rock_slide;
-mod sand_slide;
 mod humus_slide;
 mod lightning;
+mod rock_slide;
+mod sand_slide;
+mod thermal_stress;
 
 use nalgebra::Vector3;
 
@@ -9,11 +10,6 @@ use crate::{
     constants::{self, CELL_SIDE_LENGTH},
     ecology::{Cell, CellIndex, Ecosystem},
 };
-
-// trait Event {
-//     // performs and propagates the event until it is finished
-//     fn apply_event(self, ecosystem: &mut Ecosystem, index: CellIndex);
-// }
 
 #[derive(PartialEq, Debug)]
 pub(crate) enum Events {
@@ -28,12 +24,13 @@ pub(crate) enum Events {
 }
 
 impl Events {
+    // performs and propagates the event until it is finished
     pub fn apply_event(self, ecosystem: &mut Ecosystem, index: CellIndex) {
         let mut event_option = Some((self, index));
         while let Some((event, index)) = event_option {
             event_option = match event {
                 Events::Rainfall => todo!(),
-                Events::ThermalStress => todo!(),
+                Events::ThermalStress => Self::apply_thermal_stress_event(ecosystem, index),
                 Events::Lightning => Self::apply_lightning_event(ecosystem, index),
                 Events::RockSlide => Self::apply_rock_slide_event(ecosystem, index),
                 Events::SandSlide => Self::apply_sand_slide_event(ecosystem, index),

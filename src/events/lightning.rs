@@ -10,7 +10,7 @@ impl Events {
         ecosystem: &mut Ecosystem,
         index: CellIndex,
     ) -> Option<(Events, CellIndex)> {
-        let strike_probability = Self::compute_probability_of_lightning_damage(ecosystem, index);
+        let strike_probability = Self::compute_lightning_damage_probability(ecosystem, index);
         Self::apply_lightning_event_helper(ecosystem, index, strike_probability)
     }
 
@@ -63,21 +63,21 @@ impl Events {
         None
     }
 
-    fn compute_probability_of_lightning_damage(ecosystem: &Ecosystem, index: CellIndex) -> f32 {
+    fn compute_lightning_damage_probability(ecosystem: &Ecosystem, index: CellIndex) -> f32 {
         //l(p)=k_L min(1,e^(k_lc * (∇E(p)−k_ls))
         // k_L is maximum probability
         // k_lc is scaling factor
         // k_ls is minimum curvature required
         let curvature = ecosystem.estimate_curvature(index);
-        println!("index {index}, curvature {curvature}");
+        // println!("index {index}, curvature {curvature}");
 
         let max_prob = 1.0;
         let scaling_factor = 1.0;
         let min_curve = 4.0;
         let exp = scaling_factor * ((-curvature) - min_curve);
-        println!("exp {exp}");
+        // println!("exp {exp}");
         let prob = max_prob * f32::min(1.0, (std::f32::consts::E).powf(exp));
-        println!("prob {prob}");
+        // println!("prob {prob}");
 
         prob
     }

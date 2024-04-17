@@ -26,7 +26,7 @@ pub(crate) struct EcosystemRenderable {
 
 impl EcosystemRenderable {
     pub fn init() -> Self {
-        let ecosystem = Ecosystem::init_dunes();
+        let ecosystem = Ecosystem::init_test();
 
         // initialize based on the cell grid of the ecosystem
         let num_cells = constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH;
