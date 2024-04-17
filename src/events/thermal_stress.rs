@@ -72,7 +72,7 @@ mod tests {
 
     use crate::{
         constants,
-        ecology::{Cell, CellIndex, Ecosystem, Trees},
+        ecology::{Bushes, Cell, CellIndex, Ecosystem, Grasses, Trees},
         events::{
             thermal_stress::{GRANULAR_DAMPENING_CONSTANT, VEGETATION_DAMPENING_CONSTANT},
             Events,
@@ -125,14 +125,14 @@ mod tests {
             "Expected {expected}, actual {prob}"
         );
 
-        // add some vegetation
+        // add some trees
         let trees = Trees {
             number_of_plants: 5,
             plant_height_sum: 50.0,
             plant_age_sum: 10.0,
         };
-        let expected_density = Cell::estimate_tree_density(&trees);
-        println!("expected_density {expected_density}");
+        let expected_trees_density = Cell::estimate_tree_density(&trees);
+        println!("expected_trees_density {expected_trees_density}");
         let cell = &mut ecosystem[CellIndex::new(2, 2)];
         cell.trees = Some(trees);
 
@@ -140,10 +140,48 @@ mod tests {
         let expected = 0.0707
             / (1.0
                 + GRANULAR_DAMPENING_CONSTANT * 2.0
-                + VEGETATION_DAMPENING_CONSTANT * expected_density);
+                + VEGETATION_DAMPENING_CONSTANT * expected_trees_density);
         assert!(
-            approx_eq!(f32, prob, expected, epsilon = 0.001),
+            approx_eq!(f32, prob, expected, epsilon = 0.0001),
             "Expected {expected}, actual {prob}"
         );
+
+        // add some bushes
+        let bushes = Bushes {
+            number_of_plants: 20,
+            plant_height_sum: 40.0,
+            plant_age_sum: 10.0,
+        };
+        let expected_bushes_density = Cell::estimate_bushes_density(&bushes);
+        println!("expected_bushes_density {expected_bushes_density}");
+        let cell = &mut ecosystem[CellIndex::new(2, 2)];
+        cell.bushes = Some(bushes);
+        let prob = Events::compute_thermal_fracture_probability(&ecosystem, index);
+        let expected = 0.0707
+            / (1.0
+                + GRANULAR_DAMPENING_CONSTANT * 2.0
+                + VEGETATION_DAMPENING_CONSTANT * (expected_trees_density + expected_bushes_density));
+        assert!(
+            approx_eq!(f32, prob, expected, epsilon = 0.0001),
+            "Expected {expected}, actual {prob}"
+        );
+
+        // add some grasses
+        let grass_density = 0.3;
+        let grasses = Grasses {
+            coverage_density: grass_density,
+        };
+        let cell = &mut ecosystem[CellIndex::new(2, 2)];
+        cell.grasses = Some(grasses);
+        let prob = Events::compute_thermal_fracture_probability(&ecosystem, index);
+        let expected = 0.0707
+            / (1.0
+                + GRANULAR_DAMPENING_CONSTANT * 2.0
+                + VEGETATION_DAMPENING_CONSTANT * (expected_trees_density + expected_bushes_density + grass_density));
+        assert!(
+            approx_eq!(f32, prob, expected, epsilon = 0.0001),
+            "Expected {expected}, actual {prob}"
+        );
+
     }
 }

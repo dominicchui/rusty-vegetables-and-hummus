@@ -643,8 +643,13 @@ impl Cell {
         crown_area_sum / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH)
     }
 
-    fn estimate_bushes_density(bushes: &Bushes) -> f32 {
-        todo!();
+    pub(crate) fn estimate_bushes_density(bushes: &Bushes) -> f32 {
+        let n = bushes.number_of_plants;
+        let biomass = bushes.estimate_biomass();
+        let average_biomass = biomass / n  as f32;
+        let average_crown_area = Bushes::estimate_crown_area_from_biomass(average_biomass);
+        let crown_area_sum = average_crown_area * n as f32;
+        crown_area_sum / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH)
     }
 
     // fn estimate_plant_density(&self) -> f32 {
@@ -697,8 +702,8 @@ impl Trees {
 }
 
 impl Bushes {
-    pub fn estimate_biomass(&self) -> f32 {
-        // based on allometric equation for rhododendren mariesii
+    pub(crate) fn estimate_biomass(&self) -> f32 {
+        // based on allometric equation for rhododendron mariesii
         // source: https://link.springer.com/article/10.1007/s11056-023-09963-z
         // ln(biomass in kg) = -2.635 + 3.614 * ln(height in m)
         let average_height = self.plant_height_sum / self.number_of_plants as f32;
@@ -707,6 +712,17 @@ impl Bushes {
             -2.635 + 3.614 * f32::ln(average_height),
         );
         average_biomass * self.number_of_plants as f32
+    }
+
+    pub(crate) fn estimate_crown_area_from_biomass(biomass: f32) -> f32 {
+        // based on allometric equation for rhododendron mariesii
+        // source: https://link.springer.com/article/10.1007/s11056-023-09963-z
+        // ln(crown area in m^2) = (ln(biomass in kg) + 0.435) / 1.324
+        f32::powf(
+            std::f32::consts::E,
+            (f32::ln(biomass) + 0.435) / 1.324
+        )
+
     }
 }
 
@@ -1034,6 +1050,35 @@ mod tests {
         assert!(
             approx_eq!(f32, volume, expected, epsilon = 0.001),
             "Expected volume {expected}, actual volume {volume}"
+        );
+    }
+
+    #[test]
+    fn test_estimate_bushes_density() {
+        // one bush
+        let bushes = Bushes {
+            number_of_plants: 1,
+            plant_height_sum: 2.0,
+            plant_age_sum: 10.0,
+        };
+        let density = Cell::estimate_bushes_density(&bushes);
+        let expected = 0.0126;
+        assert!(
+            approx_eq!(f32, density, expected, epsilon = 0.001),
+            "Expected {expected}, actual {density}"
+        );
+
+        // many bushes
+        let bushes = Bushes {
+            number_of_plants: 10,
+            plant_height_sum: 20.0,
+            plant_age_sum: 10.0,
+        };
+        let density = Cell::estimate_bushes_density(&bushes);
+        let expected = 0.126;
+        assert!(
+            approx_eq!(f32, density, expected, epsilon = 0.001),
+            "Expected {expected}, actual {density}"
         );
     }
 }
