@@ -21,42 +21,39 @@ impl Events {
     ) -> Option<(Events, CellIndex)> {
         let mut rng = rand::thread_rng();
         let rand: f32 = rng.gen();
-        if rand > strike_probability {
-            // no lightning strike
-            return None;
-        }
+        if rand < strike_probability {
+            let cell = &mut ecosystem[index];
 
-        let cell = &mut ecosystem[index];
+            // kill all vegetation in the cell
+            Self::kill_trees(cell);
+            Self::kill_bushes(cell);
+            Self::kill_grasses(cell);
 
-        // kill all vegetation in the cell
-        Self::kill_trees(cell);
-        Self::kill_bushes(cell);
-        Self::kill_grasses(cell);
+            // destroy some bedrock and scatter as rocks and sand to nearby cells
+            let bedrock = &mut cell.bedrock.as_mut().unwrap();
+            let lost_height = constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME
+                / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
+            bedrock.height -= lost_height;
 
-        // destroy some bedrock and scatter as rocks and sand to nearby cells
-        let bedrock = &mut cell.bedrock.as_mut().unwrap();
-        let lost_height = constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME
-            / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
-        bedrock.height -= lost_height;
+            // simplifying assumption 1: half of the volume becomes rock and the other half sand
+            // simplifying assumption 2: distribute volume evenly to 8 neighbors and cell (instead of being based on slope and relative elevation)
+            let neighbors = Cell::get_neighbors(&index);
+            let num_affected_cells = neighbors.len() + 1;
+            let volume_per_cell =
+                constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME / num_affected_cells as f32;
+            let height_per_cell =
+                volume_per_cell / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
 
-        // simplifying assumption 1: half of the volume becomes rock and the other half sand
-        // simplifying assumption 2: distribute volume evenly to 8 neighbors and cell (instead of being based on slope and relative elevation)
-        let neighbors = Cell::get_neighbors(&index);
-        let num_affected_cells = neighbors.len() + 1;
-        let volume_per_cell =
-            constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME / num_affected_cells as f32;
-        let height_per_cell =
-            volume_per_cell / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
+            // add to cell
+            cell.add_rocks(height_per_cell / 2.0);
+            cell.add_sand(height_per_cell / 2.0);
 
-        // add to cell
-        cell.add_rocks(height_per_cell / 2.0);
-        cell.add_sand(height_per_cell / 2.0);
-
-        // add to neighbors
-        for index in neighbors.as_array().into_iter().flatten() {
-            let neighbor = &mut ecosystem[index];
-            neighbor.add_rocks(height_per_cell / 2.0);
-            neighbor.add_sand(height_per_cell / 2.0);
+            // add to neighbors
+            for index in neighbors.as_array().into_iter().flatten() {
+                let neighbor = &mut ecosystem[index];
+                neighbor.add_rocks(height_per_cell / 2.0);
+                neighbor.add_sand(height_per_cell / 2.0);
+            }
         }
 
         // does not propagate
@@ -119,11 +116,7 @@ mod tests {
         // verify trees are dead
         let cell = &ecosystem[index];
         let trees = &cell.trees;
-        assert!(trees.is_some());
-        let trees = trees.as_ref().unwrap();
-        assert!(trees.number_of_plants == 0);
-        assert!(trees.plant_age_sum == 0.0);
-        assert!(trees.plant_height_sum == 0.0);
+        assert!(trees.is_none());
 
         // assert bedrock is decreased
         assert!(cell.bedrock.is_some());

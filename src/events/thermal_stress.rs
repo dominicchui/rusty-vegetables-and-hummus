@@ -1,10 +1,10 @@
 // a constant to control the probability of a thermal stress event
 // higher is more likely
-const FRACTURE_CONSTANT: f32 = 1.0;
+const FRACTURE_CONSTANT: f32 = 0.01;
 // how much sand and humus dampen the probability of a thermal stress event
-const GRANULAR_DAMPENING_CONSTANT: f32 = 1.0;
+const GRANULAR_DAMPENING_CONSTANT: f32 = 0.5;
 // how much vegetation density dampens the probability of a thermal stress event
-const VEGETATION_DAMPENING_CONSTANT: f32 = 1.0;
+const VEGETATION_DAMPENING_CONSTANT: f32 = 5.0;
 // amount of bedrock fractured into rock per successful event
 const BEDROCK_FRACTURE_HEIGHT: f32 = 1.0;
 
@@ -27,6 +27,7 @@ impl Events {
         let rand: f32 = rng.gen();
 
         if rand < fracture_probability {
+            println!("fracture!");
             // fracture some bedrock and convert to rocks
             let cell = &mut ecosystem[index];
             cell.remove_bedrock(BEDROCK_FRACTURE_HEIGHT);
@@ -57,8 +58,6 @@ impl Events {
         let cell = &ecosystem[index];
         let vegetation_density = cell.estimate_vegetation_density();
         let granular_height = cell.get_height_of_sand() + cell.get_height_of_humus();
-        println!("vegetation_density {vegetation_density}");
-        println!("granular_height {granular_height}");
         FRACTURE_CONSTANT * delta_t * max_slope
             / (1.0
                 + GRANULAR_DAMPENING_CONSTANT * granular_height
@@ -74,7 +73,10 @@ mod tests {
     use crate::{
         constants,
         ecology::{Cell, CellIndex, Ecosystem, Trees},
-        events::{thermal_stress::GRANULAR_DAMPENING_CONSTANT, Events},
+        events::{
+            thermal_stress::{GRANULAR_DAMPENING_CONSTANT, VEGETATION_DAMPENING_CONSTANT},
+            Events,
+        },
     };
 
     #[test]
@@ -90,9 +92,9 @@ mod tests {
         cell.bedrock.as_mut().unwrap().height = 101.0;
 
         let prob = Events::compute_thermal_fracture_probability(&ecosystem, index);
-        let expected = 7.07;
+        let expected = 0.0707;
         assert!(
-            approx_eq!(f32, prob, expected, epsilon = 0.01),
+            approx_eq!(f32, prob, expected, epsilon = 0.001),
             "Expected {expected}, actual {prob}"
         );
 
@@ -104,9 +106,9 @@ mod tests {
         cell.bedrock.as_mut().unwrap().height = 101.0;
 
         let prob = Events::compute_thermal_fracture_probability(&ecosystem, index);
-        let expected = 7.07;
+        let expected = 0.0707;
         assert!(
-            approx_eq!(f32, prob, expected, epsilon = 0.01),
+            approx_eq!(f32, prob, expected, epsilon = 0.001),
             "Expected {expected}, actual {prob}"
         );
 
@@ -117,9 +119,30 @@ mod tests {
         cell.add_humus(1.0);
 
         let prob = Events::compute_thermal_fracture_probability(&ecosystem, index);
-        let expected = 7.07 / (1.0 + GRANULAR_DAMPENING_CONSTANT * 2.0);
+        let expected = 0.0707 / (1.0 + GRANULAR_DAMPENING_CONSTANT * 2.0);
         assert!(
-            approx_eq!(f32, prob, expected, epsilon = 0.01),
+            approx_eq!(f32, prob, expected, epsilon = 0.001),
+            "Expected {expected}, actual {prob}"
+        );
+
+        // add some vegetation
+        let trees = Trees {
+            number_of_plants: 5,
+            plant_height_sum: 50.0,
+            plant_age_sum: 10.0,
+        };
+        let expected_density = Cell::estimate_tree_density(&trees);
+        println!("expected_density {expected_density}");
+        let cell = &mut ecosystem[CellIndex::new(2, 2)];
+        cell.trees = Some(trees);
+
+        let prob = Events::compute_thermal_fracture_probability(&ecosystem, index);
+        let expected = 0.0707
+            / (1.0
+                + GRANULAR_DAMPENING_CONSTANT * 2.0
+                + VEGETATION_DAMPENING_CONSTANT * expected_density);
+        assert!(
+            approx_eq!(f32, prob, expected, epsilon = 0.001),
             "Expected {expected}, actual {prob}"
         );
     }

@@ -63,6 +63,7 @@ impl Events {
             trees.plant_height_sum = 0.0;
             trees.plant_age_sum = 0.0;
             cell.add_dead_vegetation(biomass);
+            cell.trees = None;
         }
     }
 
@@ -74,6 +75,7 @@ impl Events {
             bushes.plant_height_sum = 0.0;
             bushes.plant_age_sum = 0.0;
             cell.add_dead_vegetation(biomass);
+            cell.bushes = None;
         }
     }
 
@@ -84,6 +86,7 @@ impl Events {
             cell.add_dead_vegetation(
                 coverage_density * CELL_SIDE_LENGTH * CELL_SIDE_LENGTH * constants::GRASS_DENSITY,
             );
+            cell.grasses = None;
         }
     }
 }
@@ -124,11 +127,7 @@ mod tests {
         Events::kill_trees(&mut cell);
 
         let trees = &cell.trees;
-        assert!(trees.is_some());
-        let trees = trees.as_ref().unwrap();
-        assert!(trees.number_of_plants == 0);
-        assert!(trees.plant_age_sum == 0.0);
-        assert!(trees.plant_height_sum == 0.0);
+        assert!(trees.is_none());
 
         let dead_vegetation = &cell.dead_vegetation;
         assert!(dead_vegetation.is_some());
@@ -138,19 +137,18 @@ mod tests {
         assert!(expected == actual, "Expected {expected}, actual {actual}");
 
         // add more trees and kill them
-        let trees = &mut cell.trees.as_mut().unwrap();
-        trees.number_of_plants = 5;
-        trees.plant_height_sum = 150.0;
+        let trees = Trees {
+            number_of_plants: 5,
+            plant_height_sum: 150.0,
+            plant_age_sum: 10.0,
+        };
+        cell.trees = Some(trees);
         let biomass_2 = cell.estimate_tree_biomass();
 
         Events::kill_trees(&mut cell);
 
         let trees = &mut cell.trees;
-        assert!(trees.is_some());
-        let trees = trees.as_ref().unwrap();
-        assert!(trees.number_of_plants == 0);
-        assert!(trees.plant_age_sum == 0.0);
-        assert!(trees.plant_height_sum == 0.0);
+        assert!(trees.is_none());
 
         let dead_vegetation = cell.dead_vegetation;
         assert!(dead_vegetation.is_some());
