@@ -1,7 +1,9 @@
-use rand::Rng;
-use crate::{constants, ecology::{Cell, CellIndex, Ecosystem}};
 use super::Events;
-
+use crate::{
+    constants,
+    ecology::{Cell, CellIndex, Ecosystem},
+};
+use rand::Rng;
 
 impl Events {
     pub(crate) fn apply_lightning_event(
@@ -79,7 +81,6 @@ impl Events {
 
         prob
     }
-
 }
 
 #[cfg(test)]
@@ -87,7 +88,9 @@ mod tests {
     use float_cmp::approx_eq;
 
     use crate::{
-        constants, ecology::{Cell, CellIndex, Ecosystem, Trees}, events::Events
+        constants,
+        ecology::{Cell, CellIndex, Ecosystem, Trees},
+        events::Events,
     };
 
     #[test]
@@ -128,9 +131,7 @@ mod tests {
             - constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME
                 / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
         let actual_height = cell.bedrock.as_ref().unwrap().height;
-        assert_eq!(
-            actual_height, expected_height,
-        );
+        assert_eq!(actual_height, expected_height,);
 
         // assert neighbors and self have increase in rocks and sand
         let neighbors = Cell::get_neighbors(&index);
@@ -139,24 +140,63 @@ mod tests {
             constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME / (num_neighbors + 1) as f32;
         let height_per_cell =
             volume_per_cell / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
-        
+
         let rock_layer = &cell.rock;
         assert!(rock_layer.is_some());
-        assert!(approx_eq!(f32, rock_layer.as_ref().unwrap().height, height_per_cell / 2.0, epsilon=0.01), "Expected {}, actual {}", height_per_cell / 2.0, rock_layer.as_ref().unwrap().height);
-        
+        assert!(
+            approx_eq!(
+                f32,
+                rock_layer.as_ref().unwrap().height,
+                height_per_cell / 2.0,
+                epsilon = 0.01
+            ),
+            "Expected {}, actual {}",
+            height_per_cell / 2.0,
+            rock_layer.as_ref().unwrap().height
+        );
+
         let sand_layer = &cell.sand;
         assert!(sand_layer.is_some());
-        assert!(approx_eq!(f32, sand_layer.as_ref().unwrap().height, height_per_cell / 2.0, epsilon=0.01), "Expected {}, actual {}", height_per_cell / 2.0, sand_layer.as_ref().unwrap().height);
-        
+        assert!(
+            approx_eq!(
+                f32,
+                sand_layer.as_ref().unwrap().height,
+                height_per_cell / 2.0,
+                epsilon = 0.01
+            ),
+            "Expected {}, actual {}",
+            height_per_cell / 2.0,
+            sand_layer.as_ref().unwrap().height
+        );
+
         for neighbor_index in neighbors.as_array().into_iter().flatten() {
             let neighbor = &ecosystem[neighbor_index];
             let rock_layer = &neighbor.rock;
             assert!(rock_layer.is_some());
-            assert!(approx_eq!(f32, rock_layer.as_ref().unwrap().height, height_per_cell / 2.0, epsilon=0.01), "Expected {}, actual {}", height_per_cell / 2.0, rock_layer.as_ref().unwrap().height);
+            assert!(
+                approx_eq!(
+                    f32,
+                    rock_layer.as_ref().unwrap().height,
+                    height_per_cell / 2.0,
+                    epsilon = 0.01
+                ),
+                "Expected {}, actual {}",
+                height_per_cell / 2.0,
+                rock_layer.as_ref().unwrap().height
+            );
             let sand_layer = &neighbor.sand;
             assert!(sand_layer.is_some());
-            assert!(approx_eq!(f32, sand_layer.as_ref().unwrap().height, height_per_cell / 2.0, epsilon=0.01), "Expected {}, actual {}", height_per_cell / 2.0, sand_layer.as_ref().unwrap().height);
+            assert!(
+                approx_eq!(
+                    f32,
+                    sand_layer.as_ref().unwrap().height,
+                    height_per_cell / 2.0,
+                    epsilon = 0.01
+                ),
+                "Expected {}, actual {}",
+                height_per_cell / 2.0,
+                sand_layer.as_ref().unwrap().height
+            );
         }
     }
-
 }

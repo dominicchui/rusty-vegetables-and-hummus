@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use nalgebra::Vector3;
 use render::EcosystemRenderable;
 use sdl2::{
@@ -6,7 +5,7 @@ use sdl2::{
     sys::{SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency},
 };
 use simulation::Simulation;
-use std::{collections::HashSet, ffi::CString, thread, time};
+use std::{collections::HashSet, ffi::CString};
 
 mod camera;
 mod constants;
@@ -94,12 +93,12 @@ fn main() {
         }
         shader_program.set_used();
         simulation.draw(shader_program.id(), gl::TRIANGLES);
-        simulation.draw(shader_program.id(), gl::LINES);
+        // simulation.draw(shader_program.id(), gl::LINES);
         unsafe {
             let mut err: gl::types::GLenum = gl::GetError();
             while err != gl::NO_ERROR {
                 // Process/log the error.
-                println!("loop error {}", err);
+                println!("loop error {err}");
                 err = gl::GetError();
             }
         }

@@ -87,7 +87,7 @@ impl EcosystemRenderable {
         let far_plane = 1000.0;
         let middle = constants::AREA_SIDE_LENGTH as f32 / 2.0;
         let center = Vector3::new(middle, middle, constants::DEFAULT_BEDROCK_HEIGHT);
-        let eye: Vector3<f32> = center + Vector3::new(0.0, -5.0, 5.0);
+        let eye: Vector3<f32> = center + Vector3::new(0.0, -7.0, 10.0);
         let target: Vector3<f32> = center;
         ecosystem_render.m_camera.look_at(eye, target);
         ecosystem_render.m_camera.set_orbit_point(target);
@@ -119,7 +119,7 @@ impl EcosystemRenderable {
             let mut err: gl::types::GLenum = gl::GetError();
             while err != gl::NO_ERROR {
                 // Process/log the error.
-                println!("ibo error {}", err);
+                println!("ibo error {err}");
                 err = gl::GetError();
             }
         }
@@ -164,7 +164,7 @@ impl EcosystemRenderable {
             let mut err: gl::types::GLenum = gl::GetError();
             while err != gl::NO_ERROR {
                 // Process/log the error.
-                println!("vao error {}", err);
+                println!("vao error {err}");
                 err = gl::GetError();
             }
         }
@@ -261,7 +261,7 @@ impl EcosystemRenderable {
             let mut err: gl::types::GLenum = gl::GetError();
             while err != gl::NO_ERROR {
                 // Process/log the error.
-                println!("vbo error {}", err);
+                println!("vbo error {err}");
                 err = gl::GetError();
             }
         }
@@ -369,7 +369,7 @@ impl EcosystemRenderable {
             let mut err: gl::types::GLenum = gl::GetError();
             while err != gl::NO_ERROR {
                 // Process/log the error.
-                println!("draw error {}", err);
+                println!("draw error {err}");
                 err = gl::GetError();
             }
 

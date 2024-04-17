@@ -1,7 +1,10 @@
-use std::collections::HashMap;
-use rand::Rng;
-use crate::{constants, ecology::{Cell, CellIndex, Ecosystem}};
 use super::Events;
+use crate::{
+    constants,
+    ecology::{Cell, CellIndex, Ecosystem},
+};
+use rand::Rng;
+use std::collections::HashMap;
 
 impl Events {
     pub(crate) fn apply_sand_slide_event(
@@ -82,11 +85,11 @@ impl Events {
 
 #[cfg(test)]
 mod tests {
-    use float_cmp::approx_eq;
     use crate::{
         ecology::{CellIndex, Ecosystem},
         events::Events,
     };
+    use float_cmp::approx_eq;
 
     #[test]
     fn test_apply_sand_slide_event() {

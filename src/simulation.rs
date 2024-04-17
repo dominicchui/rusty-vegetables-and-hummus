@@ -30,18 +30,17 @@ impl Simulation {
         // let index = CellIndex::get_from_flat_index(i);
         // println!("index {index:?}");
         // Events::apply_and_propagate_lightning_event(&mut self.ecosystem.ecosystem, index);
-        let mut total_height = 0.0;
-        for i in 0..num_cells {
-            let index = CellIndex::get_from_flat_index(i);
-            total_height += self.ecosystem.ecosystem[index].get_height();
-        }
+        // let mut total_height = 0.0;
+        // for i in 0..num_cells {
+        //     let index = CellIndex::get_from_flat_index(i);
+        //     total_height += self.ecosystem.ecosystem[index].get_height();
+        // }
         // println!("average height {}", total_height / num_cells as f32);
 
         for i in vec {
-            // apply random event
-            // just lightning for now
+            // apply random event (todo randomize)
             let index = CellIndex::get_from_flat_index(i);
-            // Events::apply_event(Events::Lightning, &mut self.ecosystem.ecosystem, index);
+            Events::apply_event(Events::Lightning, &mut self.ecosystem.ecosystem, index);
             Events::apply_event(Events::SandSlide, &mut self.ecosystem.ecosystem, index);
             Events::apply_event(Events::RockSlide, &mut self.ecosystem.ecosystem, index);
             Events::apply_event(Events::HumusSlide, &mut self.ecosystem.ecosystem, index);
