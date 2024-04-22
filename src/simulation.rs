@@ -49,7 +49,7 @@ impl Simulation {
 
         let index = CellIndex::new(2, 2);
         let cell = &self.ecosystem.ecosystem[index];
-        let rocks_height = cell.get_height_of_rock();
+        let rocks_height = cell.get_rock_height();
         println!("rocks_height {rocks_height}");
 
         self.ecosystem.update_vertices();

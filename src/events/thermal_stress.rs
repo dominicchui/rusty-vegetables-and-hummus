@@ -57,7 +57,7 @@ impl Events {
         }
         let cell = &ecosystem[index];
         let vegetation_density = cell.estimate_vegetation_density();
-        let granular_height = cell.get_height_of_sand() + cell.get_height_of_humus();
+        let granular_height = cell.get_sand_height() + cell.get_humus_height();
         FRACTURE_CONSTANT * delta_t * max_slope
             / (1.0
                 + GRANULAR_DAMPENING_CONSTANT * granular_height

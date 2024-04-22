@@ -30,7 +30,6 @@ impl Events {
             Self::kill_grasses(cell);
 
             // destroy some bedrock and scatter as rocks and sand to nearby cells
-            let bedrock = &mut cell.bedrock.as_mut().unwrap();
             let lost_height = constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME
                 / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
             cell.remove_bedrock(lost_height);
@@ -116,11 +115,10 @@ mod tests {
         assert!(trees.is_none());
 
         // assert bedrock is decreased
-        assert!(cell.bedrock.is_some());
         let expected_height = constants::DEFAULT_BEDROCK_HEIGHT
             - constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME
                 / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
-        let actual_height = cell.get_height_of_bedrock();
+        let actual_height = cell.get_bedrock_height();
         assert_eq!(actual_height, expected_height,);
 
         // assert neighbors and self have increase in rocks and sand
@@ -131,61 +129,53 @@ mod tests {
         let height_per_cell =
             volume_per_cell / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
 
-        let rock_layer = &cell.rock;
-        assert!(rock_layer.is_some());
         assert!(
             approx_eq!(
                 f32,
-                cell.get_height_of_rock(),
+                cell.get_rock_height(),
                 height_per_cell / 2.0,
                 epsilon = 0.01
             ),
             "Expected {}, actual {}",
             height_per_cell / 2.0,
-            cell.get_height_of_rock(),
+            cell.get_rock_height(),
         );
 
-        let sand_layer = &cell.sand;
-        assert!(sand_layer.is_some());
         assert!(
             approx_eq!(
                 f32,
-                cell.get_height_of_sand(),
+                cell.get_sand_height(),
                 height_per_cell / 2.0,
                 epsilon = 0.01
             ),
             "Expected {}, actual {}",
             height_per_cell / 2.0,
-            cell.get_height_of_sand()
+            cell.get_sand_height()
         );
 
         for neighbor_index in neighbors.as_array().into_iter().flatten() {
             let neighbor = &ecosystem[neighbor_index];
-            let rock_layer = &neighbor.rock;
-            assert!(rock_layer.is_some());
             assert!(
                 approx_eq!(
                     f32,
-                    neighbor.get_height_of_rock(),
+                    neighbor.get_rock_height(),
                     height_per_cell / 2.0,
                     epsilon = 0.01
                 ),
                 "Expected {}, actual {}",
                 height_per_cell / 2.0,
-                neighbor.get_height_of_rock(),
+                neighbor.get_rock_height(),
             );
-            let sand_layer = &neighbor.sand;
-            assert!(sand_layer.is_some());
             assert!(
                 approx_eq!(
                     f32,
-                    cell.get_height_of_sand(),
+                    cell.get_sand_height(),
                     height_per_cell / 2.0,
                     epsilon = 0.01
                 ),
                 "Expected {}, actual {}",
                 height_per_cell / 2.0,
-                cell.get_height_of_sand()
+                cell.get_sand_height()
             );
         }
     }

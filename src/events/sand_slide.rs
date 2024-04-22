@@ -59,8 +59,8 @@ impl Events {
         target: CellIndex,
     ) -> f32 {
         let cell = &ecosystem[origin];
-        if cell.sand.is_some() {
-            let sand_height = cell.get_height_of_sand();
+        let sand_height = cell.get_sand_height();
+        if sand_height > 0.0 {
             let origin_pos = ecosystem.get_position_of_cell(&origin);
             let target_pos = ecosystem.get_position_of_cell(&target);
             let ideal_height = Events::compute_ideal_slide_height(
@@ -109,7 +109,7 @@ mod tests {
         assert_eq!(index, CellIndex::new(3, 2));
 
         let center = &mut ecosystem[CellIndex::new(3, 3)];
-        let sand_height = center.get_height_of_sand();
+        let sand_height = center.get_sand_height();
         let expected = 0.838;
         assert!(
             approx_eq!(f32, sand_height, expected, epsilon = 0.01),
@@ -117,7 +117,7 @@ mod tests {
         );
 
         let up = &mut ecosystem[CellIndex::new(3, 2)];
-        let sand_height = up.get_height_of_sand();
+        let sand_height = up.get_sand_height();
         let expected = 0.162;
         assert!(
             approx_eq!(f32, sand_height, expected, epsilon = 0.01),

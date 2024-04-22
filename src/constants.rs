@@ -26,3 +26,14 @@ pub(crate) const LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME: f32 = 4.0; //4.0; // m^3
 // https://www.sciencedirect.com/science/article/pii/S2351989421002973
 // density of highland grasses
 pub(crate) const GRASS_DENSITY: f32 = 1.0; // kg/m^3
+
+//pub(crate) const AVERAGE_TEMPERATURE: f32 = 15.0; // in celsius
+// https://en.climate-data.org/north-america/united-states-of-america/rhode-island/providence-1723/
+pub(crate) const AVERAGE_MONTHLY_TEMPERATURES: [f32; 12] = [
+    -2.0, -0.8, 2.8, 8.8, 14.3, 19.2, 23.0, 22.3, 18.7, 12.5, 6.7, 1.5,
+]; // in celsius
+pub(crate) const AVERAGE_SUNLIGHT_HOURS: [f32; 12] =
+    [6.0, 6.8, 7.2, 8.2, 8.4, 9.5, 10.3, 9.2, 7.7, 6.6, 6.0, 5.6]; // in hours per day
+pub(crate) const AVERAGE_MONTHLY_RAINFALL: [f32; 12] = [
+    96.0, 81.0, 111.0, 99.0, 86.0, 91.0, 87.0, 103.0, 93.0, 106.0, 88.0, 110.0,
+]; // in mm per month

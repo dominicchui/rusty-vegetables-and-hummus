@@ -56,18 +56,17 @@ impl IndexMut<CellIndex> for Ecosystem {
 
 #[derive(Clone)]
 pub(crate) struct Cell {
-    pub(crate) bedrock: Option<Bedrock>,
-    pub(crate) rock: Option<Rock>,
-    pub(crate) sand: Option<Sand>,
-    pub(crate) humus: Option<Humus>,
+    bedrock: Option<Bedrock>,
+    rock: Option<Rock>,
+    sand: Option<Sand>,
+    humus: Option<Humus>,
     pub(crate) trees: Option<Trees>,
     pub(crate) bushes: Option<Bushes>,
     pub(crate) grasses: Option<Grasses>,
-    pub(crate) dead_vegetation: Option<DeadVegetation>,
+    dead_vegetation: Option<DeadVegetation>,
 
     pub(crate) soil_moisture: f32,
     pub(crate) sunlight: f32,
-    pub(crate) temperature: f32,
 }
 
 #[derive(Clone)]
@@ -149,7 +148,6 @@ impl Ecosystem {
                     Cell {
                         soil_moisture: 0.0,
                         sunlight: 0.0,
-                        temperature: 0.0,
                         bedrock: Some(Bedrock {
                             height: constants::DEFAULT_BEDROCK_HEIGHT,
                         }),
@@ -388,6 +386,13 @@ impl Ecosystem {
             f32::asin(slope).to_degrees()
         }
     }
+
+    // estimates the illumination of the cell based on traced rays from the sun moving across the sky
+    // returns average daily hours of direct sunlight
+    pub(crate) fn estimate_illumination(&self, index: &CellIndex, month: usize) -> f32 {
+        // todo placeholder estimate
+        constants::AVERAGE_SUNLIGHT_HOURS[month]
+    }
 }
 
 pub(crate) struct Neighbors {
@@ -428,14 +433,27 @@ impl Neighbors {
         ]
     }
 
-    // returns number of Some fields
+    // returns number of "Some" fields
     pub fn len(&self) -> usize {
         self.as_array().iter().filter(|n| n.is_some()).count()
     }
 }
-// }
 
 impl Cell {
+    pub(crate) fn init() -> Self {
+        Cell {
+            soil_moisture: 0.0,
+            sunlight: 0.0,
+            bedrock: None,
+            rock: None,
+            sand: None,
+            humus: None,
+            trees: None,
+            bushes: None,
+            grasses: None,
+            dead_vegetation: None,
+        }
+    }
     pub(crate) fn get_neighbors(index: &CellIndex) -> Neighbors {
         let x = index.x;
         let y = index.y;
@@ -511,6 +529,20 @@ impl Cell {
         height
     }
 
+    pub(crate) fn get_monthly_temperature(self: &Cell, month: usize) -> f32 {
+        // modulate temperature with height
+        let height = self.get_height();
+        constants::AVERAGE_MONTHLY_TEMPERATURES[month] - 0.0065 * height
+    }
+
+    pub(crate) fn get_monthly_soil_moisture(self: &Cell, month: usize) -> f32 {
+        // distribute cell moisture by monthly rainfall patterns
+        // cell moisture is volume of water in a cell
+        let rainfall = constants::AVERAGE_MONTHLY_RAINFALL[month];
+        let annual_rainfall: f32 = constants::AVERAGE_MONTHLY_RAINFALL.into_iter().sum();
+        self.soil_moisture * (rainfall / annual_rainfall)
+    }
+
     // *** LAYER ADDERS ***
     pub(crate) fn add_bedrock(&mut self, height: f32) {
         if let Some(bedrock) = &mut self.bedrock {
@@ -579,7 +611,7 @@ impl Cell {
 
     // *** HEIGHT GETTERS ***
 
-    pub(crate) fn get_height_of_bedrock(&self) -> f32 {
+    pub(crate) fn get_bedrock_height(&self) -> f32 {
         if let Some(bedrock) = &self.bedrock {
             bedrock.height
         } else {
@@ -587,7 +619,7 @@ impl Cell {
         }
     }
 
-    pub(crate) fn get_height_of_sand(&self) -> f32 {
+    pub(crate) fn get_sand_height(&self) -> f32 {
         if let Some(sand) = &self.sand {
             sand.height
         } else {
@@ -595,7 +627,7 @@ impl Cell {
         }
     }
 
-    pub(crate) fn get_height_of_humus(&self) -> f32 {
+    pub(crate) fn get_humus_height(&self) -> f32 {
         if let Some(humus) = &self.humus {
             humus.height
         } else {
@@ -603,9 +635,17 @@ impl Cell {
         }
     }
 
-    pub(crate) fn get_height_of_rock(&self) -> f32 {
+    pub(crate) fn get_rock_height(&self) -> f32 {
         if let Some(rock) = &self.rock {
             rock.height
+        } else {
+            0.0
+        }
+    }
+
+    pub(crate) fn get_dead_vegetation_biomass(&self) -> f32 {
+        if let Some(dead_vegetation) = &self.dead_vegetation {
+            dead_vegetation.biomass
         } else {
             0.0
         }
@@ -830,7 +870,6 @@ mod tests {
         let cell = Cell {
             soil_moisture: 0.0,
             sunlight: 0.0,
-            temperature: 0.0,
             bedrock: Some(bedrock),
             rock: Some(rock),
             sand: Some(sand),
@@ -840,7 +879,45 @@ mod tests {
             grasses: None,
             dead_vegetation: None,
         };
-        assert!(cell.get_height() == 116.1);
+        assert_eq!(cell.get_height(), 116.1);
+    }
+
+    #[test]
+    fn test_get_temperature() {
+        let mut cell = Cell {
+            soil_moisture: 0.0,
+            sunlight: 0.0,
+            bedrock: None,
+            rock: None,
+            sand: None,
+            humus: None,
+            trees: None,
+            bushes: None,
+            grasses: None,
+            dead_vegetation: None,
+        };
+        assert_eq!(
+            cell.get_monthly_temperature(0),
+            constants::AVERAGE_MONTHLY_TEMPERATURES[0]
+        );
+        assert_eq!(
+            cell.get_monthly_temperature(11),
+            constants::AVERAGE_MONTHLY_TEMPERATURES[11]
+        );
+
+        cell.add_bedrock(100.0);
+        assert_eq!(
+            cell.get_monthly_temperature(0),
+            constants::AVERAGE_MONTHLY_TEMPERATURES[0] - 0.0065 * 100.0
+        );
+
+        cell.add_rocks(10.0);
+        cell.add_sand(10.0);
+        cell.add_dead_vegetation(10.0);
+        assert_eq!(
+            cell.get_monthly_temperature(0),
+            constants::AVERAGE_MONTHLY_TEMPERATURES[0] - 0.0065 * 120.0
+        );
     }
 
     #[test]
@@ -954,7 +1031,6 @@ mod tests {
         let mut cell = Cell {
             soil_moisture: 0.0,
             sunlight: 0.0,
-            temperature: 0.0,
             bedrock: None,
             rock: None,
             sand: None,
@@ -1045,7 +1121,6 @@ mod tests {
         let mut cell = Cell {
             soil_moisture: 0.0,
             sunlight: 0.0,
-            temperature: 0.0,
             bedrock: None,
             rock: None,
             sand: None,
@@ -1101,5 +1176,30 @@ mod tests {
             approx_eq!(f32, density, expected, epsilon = 0.001),
             "Expected {expected}, actual {density}"
         );
+    }
+
+    #[test]
+    fn test_get_monthly_soil_moisture() {
+        let mut ecosystem = Ecosystem::init();
+        let index = CellIndex::new(2, 2);
+        let cell = &mut ecosystem[index];
+
+        // January
+        let moisture = cell.get_monthly_soil_moisture(0);
+        assert_eq!(moisture, 0.0);
+
+        // 1 L of moisture
+        cell.soil_moisture = 1.0;
+        let moisture = cell.get_monthly_soil_moisture(0);
+        assert_eq!(moisture, 96.0 / 1151.0);
+
+        // 50 L of moisture
+        cell.soil_moisture = 50.0;
+        let moisture = cell.get_monthly_soil_moisture(0);
+        assert_eq!(moisture, 50.0 * 96.0 / 1151.0);
+
+        // July
+        let moisture = cell.get_monthly_soil_moisture(6);
+        assert_eq!(moisture, 50.0 * 87.0 / 1151.0);
     }
 }
