@@ -133,7 +133,7 @@ impl Ecosystem {
             cells: vec![
                 vec![
                     Cell {
-                        soil_moisture: 0.0,
+                        soil_moisture: 1.8E5,
                         sunlight: 0.0,
                         bedrock: Some(Bedrock {
                             height: constants::DEFAULT_BEDROCK_HEIGHT,
@@ -155,58 +155,76 @@ impl Ecosystem {
 
     pub fn init_test() -> Self {
         let mut ecosystem = Self::init();
-        let neighbor_height = 101.0 + f32::sqrt(3.0) / 2.0;
+        let neighbor_height = 101.0;
         let c_i = 2;
 
         let trees = Trees {
-            number_of_plants: 15,
-            plant_height_sum: 150.0,
-            plant_age_sum: 10.0,
+            number_of_plants: 2,
+            plant_height_sum: 20.0,
+            plant_age_sum: 40.0,
         };
 
         let center = &mut ecosystem[CellIndex::new(c_i, c_i)];
         let bedrock = center.bedrock.as_mut().unwrap();
-        bedrock.height = 103.0;
+        bedrock.height = 102.0;
+        center.add_humus(0.5);
+        center.soil_moisture = 1.8E5;
         // center.trees = Some(trees.clone());
 
         let up = &mut ecosystem[CellIndex::new(c_i, c_i - 1)];
         let bedrock = up.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        up.add_humus(0.5);
+        up.soil_moisture = 1.8E5;
         // up.trees = Some(trees.clone());
 
         let down = &mut ecosystem[CellIndex::new(c_i, c_i + 1)];
         let bedrock = down.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        down.add_humus(0.5);
+        down.soil_moisture = 1.8E5;
         // down.trees = Some(trees.clone());
 
         let left = &mut ecosystem[CellIndex::new(c_i - 1, c_i)];
         let bedrock = left.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        left.add_humus(0.5);
+        left.soil_moisture = 1.8E5;
         left.trees = Some(trees.clone());
 
         let right = &mut ecosystem[CellIndex::new(c_i + 1, c_i)];
         let bedrock = right.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        right.add_humus(0.5);
+        right.soil_moisture = 1.8E5;
         // right.trees = Some(trees.clone());
 
         let up_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i - 1)];
         let bedrock = up_left.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        up_left.add_humus(0.5);
+        up_left.soil_moisture = 1.8E5;
         up_left.trees = Some(trees.clone());
 
         let up_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i - 1)];
         let bedrock = up_right.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        up_right.add_humus(0.5);
+        up_right.soil_moisture = 1.8E5;
         // up_right.trees = Some(trees.clone());
 
         let down_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i + 1)];
         let bedrock = down_left.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        down_left.add_humus(0.5);
+        down_left.soil_moisture = 1.8E5;
         down_left.trees = Some(trees.clone());
 
         let down_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i + 1)];
         let bedrock = down_right.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        down_right.add_humus(0.5);
+        down_right.soil_moisture = 1.8E5;
         // down_right.trees = Some(trees.clone());
 
         ecosystem
@@ -702,7 +720,11 @@ impl Cell {
     pub(crate) fn estimate_tree_density(trees: &Trees) -> f32 {
         let n = trees.number_of_plants;
         let h = trees.plant_height_sum;
-        let average_height = h / n as f32;
+        let average_height = if n == 0 {
+            0.0 
+        } else {
+            h / n as f32
+        };
         let average_diameter = Trees::estimate_diameter_from_height(average_height);
         let average_crown_area = Trees::estimate_crown_area_from_diameter(average_diameter);
         let crown_area_sum = average_crown_area * n as f32;
@@ -736,6 +758,13 @@ impl CellLayer {
 }
 
 impl Trees {
+    pub(crate) fn init() -> Self {
+        Trees {
+            number_of_plants: 0,
+            plant_height_sum: 0.0,
+            plant_age_sum: 0.0,
+        }
+    }
     pub(crate) fn estimate_biomass(&self) -> f32 {
         // based on allometric equation for red maples
         // source: https://academic.oup.com/forestry/article/87/1/129/602137#9934369

@@ -22,12 +22,12 @@ impl Events {
         index: CellIndex,
     ) -> Option<(Events, CellIndex)> {
         let fracture_probability = Self::compute_thermal_fracture_probability(ecosystem, index);
-        println!("fracture_probability {fracture_probability}");
+        // println!("fracture_probability {fracture_probability}");
         let mut rng = rand::thread_rng();
         let rand: f32 = rng.gen();
 
         if rand < fracture_probability {
-            println!("fracture!");
+            // println!("fracture!");
             // fracture some bedrock and convert to rocks
             let cell = &mut ecosystem[index];
             cell.remove_bedrock(BEDROCK_FRACTURE_HEIGHT);

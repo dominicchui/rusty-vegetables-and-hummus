@@ -72,6 +72,7 @@ fn main() {
     let mut simulation = Simulation::init();
 
     // main loop
+    let mut count = 0;
     let mut paused = true;
     let mut prev_keys = HashSet::new();
     let mut now;
@@ -123,7 +124,9 @@ fn main() {
         let new_keys = &keys - &prev_keys;
         prev_keys = keys.clone();
         if new_keys.contains(&Keycode::Space) {
+            println!("\nTime step {count}");
             simulation.take_time_step();
+            count += 1;
         }
 
         if new_keys.contains(&Keycode::T) {

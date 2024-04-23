@@ -5,7 +5,7 @@ use std::ffi::CString;
 use crate::{
     camera::Camera,
     constants,
-    ecology::{CellIndex, Ecosystem},
+    ecology::{Cell, CellIndex, Ecosystem},
 };
 
 pub(crate) struct EcosystemRenderable {
@@ -45,7 +45,16 @@ impl EcosystemRenderable {
                 let height = cell.get_height();
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(ecosystem.get_normal(index));
-                colors.push(Vector3::new(0.61, 0.46, 0.33));
+                // todo remove
+                // make cell more green based on tree density
+                // 0 density => g = 118
+                // 1 density => g = 240
+                let green = if let Some(trees) = &cell.trees {
+                    f32::min(1.0, (118.0 + 122.0 * Cell::estimate_tree_density(trees)) / 255.0)
+                } else {
+                    0.46
+                };
+                colors.push(Vector3::new(0.61, green, 0.33));
             }
         }
         // simple tessellation of square grid
@@ -278,7 +287,13 @@ impl EcosystemRenderable {
                 let height = cell.get_height();
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(self.ecosystem.get_normal(index));
-                colors.push(Vector3::new(0.61, 0.46, 0.33));
+                // todo remove
+                let green = if let Some(trees) = &cell.trees {
+                    f32::min(1.0, (118.0 + 122.0 * Cell::estimate_tree_density(trees)) / 255.0)
+                } else {
+                    0.46
+                };
+                colors.push(Vector3::new(0.61, green, 0.33));
             }
         }
         EcosystemRenderable::populate_vbo(self.m_vbo, &verts, &normals, &colors);
@@ -337,25 +352,25 @@ impl EcosystemRenderable {
             assert!(inv_model_loc != -1);
             gl::UniformMatrix3fv(inv_model_loc, 1, gl::FALSE, &inverse_transpose_model[0]);
 
-            let c_str = CString::new("red").unwrap();
-            let red_loc = gl::GetUniformLocation(program_id, c_str.as_ptr());
-            assert!(red_loc != -1);
-            gl::Uniform1f(red_loc, 0.61);
+            // let c_str = CString::new("red").unwrap();
+            // let red_loc = gl::GetUniformLocation(program_id, c_str.as_ptr());
+            // assert!(red_loc != -1);
+            // gl::Uniform1f(red_loc, 0.61);
 
-            let c_str = CString::new("green").unwrap();
-            let green_loc = gl::GetUniformLocation(program_id, c_str.as_ptr());
-            assert!(green_loc != -1);
-            gl::Uniform1f(green_loc, 0.46);
+            // let c_str = CString::new("green").unwrap();
+            // let green_loc = gl::GetUniformLocation(program_id, c_str.as_ptr());
+            // assert!(green_loc != -1);
+            // gl::Uniform1f(green_loc, 0.46);
 
-            let c_str = CString::new("blue").unwrap();
-            let blue_loc = gl::GetUniformLocation(program_id, c_str.as_ptr());
-            assert!(blue_loc != -1);
-            gl::Uniform1f(blue_loc, 0.33);
+            // let c_str = CString::new("blue").unwrap();
+            // let blue_loc = gl::GetUniformLocation(program_id, c_str.as_ptr());
+            // assert!(blue_loc != -1);
+            // gl::Uniform1f(blue_loc, 0.33);
 
-            let c_str = CString::new("alpha").unwrap();
-            let alpha_loc = gl::GetUniformLocation(program_id, c_str.as_ptr());
-            assert!(alpha_loc != -1);
-            gl::Uniform1f(alpha_loc, 1.0);
+            // let c_str = CString::new("alpha").unwrap();
+            // let alpha_loc = gl::GetUniformLocation(program_id, c_str.as_ptr());
+            // assert!(alpha_loc != -1);
+            // gl::Uniform1f(alpha_loc, 1.0);
 
             gl::BindVertexArray(self.m_vao);
             gl::Enable(gl::LINE_SMOOTH);
