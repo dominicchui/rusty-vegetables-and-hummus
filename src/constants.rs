@@ -12,9 +12,6 @@ pub(crate) const CRITICAL_ANGLE_ROCK: f32 = 40.0;
 pub(crate) const CRITICAL_ANGLE_SAND: f32 = 34.0;
 pub(crate) const CRITICAL_ANGLE_HUMUS: f32 = 40.0;
 
-// https://link.springer.com/referenceworkentry/10.1007/978-1-4020-3995-9_406
-pub(crate) const HUMUS_DENSITY: f32 = 0.15;
-
 // LIGHTNING
 // based on ~10 lightning strikes per km per year
 pub(crate) const MAX_LIGHTNING_PROBABILITY: f32 = 0.002;

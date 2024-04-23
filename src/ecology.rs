@@ -127,19 +127,6 @@ pub(crate) struct DeadVegetation {
     pub(crate) biomass: f32, // in kg
 }
 
-// Maybe this should be a static of some sort? It captures the nature of a given type of plant that holds for all types
-struct Plant {
-    name: String,
-    establishment_rate: f32, // saplings per area per year
-    growth_rate: f32,        // growth in height per tree per year
-    life_expectancy: f32,
-    temperature_e_min: f32,
-    temperature_e_max: f32,
-    temperature_i_min: f32,
-    temperature_i_max: f32,
-    // etc...
-}
-
 impl Ecosystem {
     pub fn init() -> Self {
         Ecosystem {
@@ -588,25 +575,41 @@ impl Cell {
     pub(crate) fn remove_bedrock(&mut self, height: f32) {
         if let Some(bedrock) = &mut self.bedrock {
             bedrock.height -= height;
+            if bedrock.height <= 0.0 {
+                self.bedrock = None;
+            }
         }
     }
 
     pub(crate) fn remove_sand(&mut self, height: f32) {
         if let Some(sand) = &mut self.sand {
             sand.height -= height;
+            if sand.height <= 0.0 {
+                self.sand = None;
+            }
         }
     }
 
     pub(crate) fn remove_rocks(&mut self, height: f32) {
         if let Some(rock) = &mut self.rock {
             rock.height -= height;
+            if rock.height <= 0.0 {
+                self.rock = None;
+            }
         }
     }
 
     pub(crate) fn remove_humus(&mut self, height: f32) {
         if let Some(humus) = &mut self.humus {
             humus.height -= height;
+            if humus.height <= 0.0 {
+                self.humus = None;
+            }
         }
+    }
+    
+    pub(crate) fn remove_all_dead_vegetation(&mut self) {
+        self.dead_vegetation = None;
     }
 
     // *** HEIGHT GETTERS ***
@@ -697,8 +700,6 @@ impl Cell {
     }
 
     pub(crate) fn estimate_tree_density(trees: &Trees) -> f32 {
-        // d =nπ(r ·h/n)^2 /w ^2
-        // d = density, n = number of plants, h = sum of plant heights, w = width of cell, r = ratio of plant's canopy radius to height
         let n = trees.number_of_plants;
         let h = trees.plant_height_sum;
         let average_height = h / n as f32;
@@ -739,7 +740,11 @@ impl Trees {
         // based on allometric equation for red maples
         // source: https://academic.oup.com/forestry/article/87/1/129/602137#9934369
         // ln(biomass in kg) = -2.0470 + 2.3852 * ln(diameter in cm)
-        let average_height = self.plant_height_sum / self.number_of_plants as f32;
+        let average_height = if self.number_of_plants == 0 {
+            0.0
+        } else {
+            self.plant_height_sum / self.number_of_plants as f32
+        };
         let average_diameter = Trees::estimate_diameter_from_height(average_height);
         let average_biomass = f32::powf(
             std::f32::consts::E,
