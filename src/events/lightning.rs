@@ -22,6 +22,7 @@ impl Events {
         let mut rng = rand::thread_rng();
         let rand: f32 = rng.gen();
         if rand < strike_probability {
+            // println!("Lightning at {index}");
             let cell = &mut ecosystem[index];
 
             // kill all vegetation in the cell

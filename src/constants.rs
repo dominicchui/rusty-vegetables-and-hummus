@@ -1,9 +1,9 @@
 pub(crate) const SCREEN_WIDTH: usize = 1400;
 pub(crate) const SCREEN_HEIGHT: usize = 1000;
-pub(crate) const SPEED: f32 = 10.0;
+pub(crate) const SPEED: f32 = AREA_SIDE_LENGTH as f32;
 
 // https://extension.psu.edu/calculating-the-green-weight-of-wood-species
-pub(crate) const AREA_SIDE_LENGTH: usize = 5; // in cells
+pub(crate) const AREA_SIDE_LENGTH: usize = 100; // in cells
 pub(crate) const CELL_SIDE_LENGTH: f32 = 10.0; // in meters
 pub(crate) const DEFAULT_BEDROCK_HEIGHT: f32 = 100.0; // in meters
 
@@ -34,3 +34,5 @@ pub(crate) const AVERAGE_SUNLIGHT_HOURS: [f32; 12] =
 pub(crate) const AVERAGE_MONTHLY_RAINFALL: [f32; 12] = [
     96.0, 81.0, 111.0, 99.0, 86.0, 91.0, 87.0, 103.0, 93.0, 106.0, 88.0, 110.0,
 ]; // in mm per month
+
+pub(crate) const DEFAULT_HUMUS_HEIGHT: f32 = 0.5;

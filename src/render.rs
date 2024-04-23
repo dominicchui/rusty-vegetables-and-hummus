@@ -26,7 +26,7 @@ pub(crate) struct EcosystemRenderable {
 
 impl EcosystemRenderable {
     pub fn init() -> Self {
-        let ecosystem = Ecosystem::init_test();
+        let ecosystem = Ecosystem::init_standard();
 
         // initialize based on the cell grid of the ecosystem
         let num_cells = constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH;
@@ -50,7 +50,10 @@ impl EcosystemRenderable {
                 // 0 density => g = 118
                 // 1 density => g = 240
                 let green = if let Some(trees) = &cell.trees {
-                    f32::min(1.0, (118.0 + 122.0 * Cell::estimate_tree_density(trees)) / 255.0)
+                    f32::min(
+                        1.0,
+                        (118.0 + 122.0 * Cell::estimate_tree_density(trees)) / 255.0,
+                    )
                 } else {
                     0.46
                 };
@@ -93,11 +96,18 @@ impl EcosystemRenderable {
 
         // Initialize camera in reasonable location
         let near_plane = 0.001;
-        let far_plane = 1000.0;
-        let middle = constants::AREA_SIDE_LENGTH as f32 / 2.0;
+        let far_plane = 10000.0;
+        let middle = constants::AREA_SIDE_LENGTH as f32;
         let center = Vector3::new(middle, middle, constants::DEFAULT_BEDROCK_HEIGHT);
-        let eye: Vector3<f32> = center + Vector3::new(0.0, -7.0, 10.0);
+        let eye: Vector3<f32> = center
+            + Vector3::new(
+                0.0,
+                -1.7 * constants::AREA_SIDE_LENGTH as f32,
+                1.5 * constants::AREA_SIDE_LENGTH as f32,
+            );
         let target: Vector3<f32> = center;
+        println!("center {center:?}");
+        println!("eye {eye:?}");
         ecosystem_render.m_camera.look_at(eye, target);
         ecosystem_render.m_camera.set_orbit_point(target);
         ecosystem_render.m_camera.set_perspective(
@@ -284,12 +294,16 @@ impl EcosystemRenderable {
             for j in 0..constants::AREA_SIDE_LENGTH {
                 let index = CellIndex::new(i, j);
                 let cell = &self.ecosystem[index];
+                // make uniform cube cells
                 let height = cell.get_height();
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(self.ecosystem.get_normal(index));
                 // todo remove
                 let green = if let Some(trees) = &cell.trees {
-                    f32::min(1.0, (118.0 + 122.0 * Cell::estimate_tree_density(trees)) / 255.0)
+                    f32::min(
+                        1.0,
+                        (118.0 + 122.0 * Cell::estimate_tree_density(trees)) / 255.0,
+                    )
                 } else {
                     0.46
                 };

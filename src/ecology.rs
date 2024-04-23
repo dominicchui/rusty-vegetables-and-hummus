@@ -153,142 +153,6 @@ impl Ecosystem {
         }
     }
 
-    pub fn init_test() -> Self {
-        let mut ecosystem = Self::init();
-        let neighbor_height = 101.0;
-        let c_i = 2;
-
-        let trees = Trees {
-            number_of_plants: 2,
-            plant_height_sum: 20.0,
-            plant_age_sum: 40.0,
-        };
-
-        let center = &mut ecosystem[CellIndex::new(c_i, c_i)];
-        let bedrock = center.bedrock.as_mut().unwrap();
-        bedrock.height = 102.0;
-        center.add_humus(0.5);
-        center.soil_moisture = 1.8E5;
-        // center.trees = Some(trees.clone());
-
-        let up = &mut ecosystem[CellIndex::new(c_i, c_i - 1)];
-        let bedrock = up.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        up.add_humus(0.5);
-        up.soil_moisture = 1.8E5;
-        // up.trees = Some(trees.clone());
-
-        let down = &mut ecosystem[CellIndex::new(c_i, c_i + 1)];
-        let bedrock = down.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        down.add_humus(0.5);
-        down.soil_moisture = 1.8E5;
-        // down.trees = Some(trees.clone());
-
-        let left = &mut ecosystem[CellIndex::new(c_i - 1, c_i)];
-        let bedrock = left.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        left.add_humus(0.5);
-        left.soil_moisture = 1.8E5;
-        left.trees = Some(trees.clone());
-
-        let right = &mut ecosystem[CellIndex::new(c_i + 1, c_i)];
-        let bedrock = right.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        right.add_humus(0.5);
-        right.soil_moisture = 1.8E5;
-        // right.trees = Some(trees.clone());
-
-        let up_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i - 1)];
-        let bedrock = up_left.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        up_left.add_humus(0.5);
-        up_left.soil_moisture = 1.8E5;
-        up_left.trees = Some(trees.clone());
-
-        let up_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i - 1)];
-        let bedrock = up_right.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        up_right.add_humus(0.5);
-        up_right.soil_moisture = 1.8E5;
-        // up_right.trees = Some(trees.clone());
-
-        let down_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i + 1)];
-        let bedrock = down_left.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        down_left.add_humus(0.5);
-        down_left.soil_moisture = 1.8E5;
-        down_left.trees = Some(trees.clone());
-
-        let down_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i + 1)];
-        let bedrock = down_right.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        down_right.add_humus(0.5);
-        down_right.soil_moisture = 1.8E5;
-        // down_right.trees = Some(trees.clone());
-
-        ecosystem
-    }
-
-    pub fn init_piles() -> Self {
-        let mut ecosystem = Self::init();
-
-        let c_i = 3;
-        let center = &mut ecosystem[CellIndex::new(c_i, c_i)];
-        center.add_sand(1.0);
-
-        let down = &mut ecosystem[CellIndex::new(c_i, c_i + 1)];
-        down.add_sand(1.0);
-
-        let right = &mut ecosystem[CellIndex::new(c_i + 1, c_i)];
-        right.add_sand(1.0);
-
-        let down_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i + 1)];
-        down_right.add_sand(3.0);
-
-        let new_center = &mut ecosystem[CellIndex::new(c_i - 2, c_i)];
-        new_center.add_rocks(1.0);
-
-        let new_down = &mut ecosystem[CellIndex::new(c_i - 2, c_i + 1)];
-        new_down.add_rocks(1.0);
-
-        let left = &mut ecosystem[CellIndex::new(c_i - 3, c_i)];
-        left.add_rocks(1.0);
-
-        let down_left = &mut ecosystem[CellIndex::new(c_i - 3, c_i + 1)];
-        down_left.add_rocks(3.0);
-
-        let up_left = &mut ecosystem[CellIndex::new(c_i - 3, c_i - 1)];
-        up_left.add_humus(3.0);
-
-        ecosystem
-    }
-
-    pub fn init_dunes() -> Self {
-        let mut ecosystem = Self::init();
-        let cell = &mut ecosystem[CellIndex::new(0, 1)];
-        cell.add_sand(1.0);
-        let cell = &mut ecosystem[CellIndex::new(0, 2)];
-        cell.add_sand(2.0);
-        let cell = &mut ecosystem[CellIndex::new(0, 3)];
-        cell.add_sand(3.0);
-        let cell = &mut ecosystem[CellIndex::new(0, 4)];
-        cell.add_sand(4.0);
-
-        // let cell = &mut ecosystem[CellIndex::new(2, 2)];
-        // cell.add_sand(2.0);
-        // let cell = &mut ecosystem[CellIndex::new(1, 2)];
-        // cell.add_sand(1.0);
-        // let cell = &mut ecosystem[CellIndex::new(3, 2)];
-        // cell.add_sand(1.0);
-        // let cell = &mut ecosystem[CellIndex::new(2, 1)];
-        // cell.add_sand(1.0);
-        // let cell = &mut ecosystem[CellIndex::new(2, 3)];
-        // cell.add_sand(1.0);
-
-        ecosystem
-    }
-
     pub(crate) fn get_normal(&self, index: CellIndex) -> Vector3<f32> {
         // normal of a vertex is the normalized sum of the normals of the adjacent faces
         // cells are vertices and the triangles formed between the cell and its 4 adjacent cells are faces
@@ -389,6 +253,23 @@ impl Ecosystem {
             -f32::asin(slope).to_degrees()
         } else {
             f32::asin(slope).to_degrees()
+        }
+    }
+
+    // average of slope from point to neighbors
+    pub(crate) fn get_slope_at_point(&self, index: CellIndex) -> f32 {
+        let neighbors = Cell::get_neighbors(&index);
+        let mut slope_sum = 0.0;
+        let mut slope_count = 0;
+        for neighbor_index in neighbors.as_array().into_iter().flatten() {
+            slope_count += 1;
+            slope_sum += self.get_slope_between_points(index, neighbor_index);
+        }
+
+        if slope_count > 0 {
+            slope_sum / slope_count as f32
+        } else {
+            0.0
         }
     }
 
@@ -625,7 +506,7 @@ impl Cell {
             }
         }
     }
-    
+
     pub(crate) fn remove_all_dead_vegetation(&mut self) {
         self.dead_vegetation = None;
     }
@@ -720,11 +601,7 @@ impl Cell {
     pub(crate) fn estimate_tree_density(trees: &Trees) -> f32 {
         let n = trees.number_of_plants;
         let h = trees.plant_height_sum;
-        let average_height = if n == 0 {
-            0.0 
-        } else {
-            h / n as f32
-        };
+        let average_height = if n == 0 { 0.0 } else { h / n as f32 };
         let average_diameter = Trees::estimate_diameter_from_height(average_height);
         let average_crown_area = Trees::estimate_crown_area_from_diameter(average_diameter);
         let crown_area_sum = average_crown_area * n as f32;
@@ -1056,6 +933,13 @@ mod tests {
     }
 
     #[test]
+    fn test_get_slope_at_point() {
+        let mut ecosystem = Ecosystem::init();
+        let slope = ecosystem.get_slope_at_point(CellIndex::new(2, 2));
+        assert_eq!(slope, 0.0);
+    }
+
+    #[test]
     fn test_estimate_tree_biomass() {
         let trees = Trees {
             number_of_plants: 1,
@@ -1219,6 +1103,7 @@ mod tests {
         let cell = &mut ecosystem[index];
 
         // January
+        cell.soil_moisture = 0.0;
         let moisture = cell.get_monthly_soil_moisture(0);
         assert_eq!(moisture, 0.0);
 

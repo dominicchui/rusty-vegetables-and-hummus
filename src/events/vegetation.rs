@@ -44,7 +44,6 @@ trait Vegetation {
     const STRESS_DEATH_CONSTANT: f32;
     // impact of age on number of plants
     const SENESCENCE_DEATH_CONSTANT: f32;
-
 }
 
 impl Vegetation for Trees {
@@ -68,7 +67,7 @@ impl Vegetation for Trees {
     const ILLUMINATION_IDEAL_MIN: f32 = 6.0;
     const ILLUMINATION_IDEAL_MAX: f32 = 10.0;
     const ILLUMINATION_LIMIT_MAX: f32 = 14.0;
-    
+
     const ESTABLISHMENT_RATE: f32 = 0.24;
     const SEEDLING_DENSITY_CONSTANT: f32 = 0.05;
     const SEEDLING_VIGOR_CONSTANT: f32 = 0.5;
@@ -94,7 +93,7 @@ impl Vegetation for Bushes {
     const ILLUMINATION_LIMIT_MIN: f32 = 0.0;
     const ILLUMINATION_IDEAL_MIN: f32 = 0.0;
     const ILLUMINATION_IDEAL_MAX: f32 = 0.0;
-    const ILLUMINATION_LIMIT_MAX: f32 = 0.0;   
+    const ILLUMINATION_LIMIT_MAX: f32 = 0.0;
 
     const ESTABLISHMENT_RATE: f32 = 0.0;
     const SEEDLING_DENSITY_CONSTANT: f32 = 0.0;
@@ -150,16 +149,20 @@ impl Events {
             // no trees so potentially germinate some
             Trees::init()
         };
-        
+
         let (vigor, stress) = Self::compute_vigor_and_stress(ecosystem, index, &new_trees);
-        
+
         // Germination
         let mut density = Cell::estimate_tree_density(&new_trees);
         // println!("vigor {vigor}, stress {stress}, density {density}");
         if stress == 0.0 && density < 1.0 {
             // convert establishment rate from plants per square meter to plants per cell
-            let mut seedling_count = (Trees::ESTABLISHMENT_RATE * constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH) *
-                (Trees::SEEDLING_DENSITY_CONSTANT * (1.0 - density)) * Trees::SEEDLING_VIGOR_CONSTANT * vigor;
+            let mut seedling_count = (Trees::ESTABLISHMENT_RATE
+                * constants::CELL_SIDE_LENGTH
+                * constants::CELL_SIDE_LENGTH)
+                * (Trees::SEEDLING_DENSITY_CONSTANT * (1.0 - density))
+                * Trees::SEEDLING_VIGOR_CONSTANT
+                * vigor;
             // println!("seedling_count {seedling_count}");
             // if seedling count is < 0, use it as probability of new seedling
             if seedling_count > 0.0 && seedling_count < 1.0 {
@@ -179,11 +182,12 @@ impl Events {
             new_trees.plant_age_sum += new_trees.number_of_plants as f32;
 
             // Death
-            let pre_death_count =  new_trees.number_of_plants;
+            let pre_death_count = new_trees.number_of_plants;
 
             // overpopulation
             while density > 1.0 && new_trees.number_of_plants > 1 {
-                let average_plant_height = new_trees.plant_height_sum / new_trees.number_of_plants as f32;
+                let average_plant_height =
+                    new_trees.plant_height_sum / new_trees.number_of_plants as f32;
                 let average_plant_age = new_trees.plant_age_sum / new_trees.number_of_plants as f32;
                 new_trees.number_of_plants -= 1;
                 new_trees.plant_height_sum -= average_plant_height;
@@ -197,11 +201,14 @@ impl Events {
             // old age
             let average_age = new_trees.plant_age_sum / new_trees.number_of_plants as f32;
             let num_dead_from_old_age = if average_age > Trees::LIFE_EXPECTANCY {
-                f32::ceil((1.0 - Trees::SENESCENCE_DEATH_CONSTANT) * new_trees.number_of_plants as f32) as u32
+                f32::ceil(
+                    (1.0 - Trees::SENESCENCE_DEATH_CONSTANT) * new_trees.number_of_plants as f32,
+                ) as u32
             } else {
                 0
             };
-            let average_plant_height = new_trees.plant_height_sum / new_trees.number_of_plants as f32;
+            let average_plant_height =
+                new_trees.plant_height_sum / new_trees.number_of_plants as f32;
             let average_plant_age = new_trees.plant_age_sum / new_trees.number_of_plants as f32;
             new_trees.number_of_plants -= num_dead_from_old_age;
             new_trees.plant_height_sum -= num_dead_from_old_age as f32 * average_plant_height;
@@ -217,12 +224,12 @@ impl Events {
             // conversion to dead vegetation
             new_dead_biomass += dead_trees.estimate_biomass();
 
-            println!("new trees {new_trees:?}");
+            // println!("new trees {new_trees:?}");
 
             // handle mutability restrictions
             if new_trees.number_of_plants > 0 {
                 new_trees_option = Some(new_trees);
-            }   
+            }
         }
 
         let cell = &mut ecosystem[index];
@@ -243,7 +250,8 @@ impl Events {
     // given an amount of biomass, determine the height of humus to be produced
     fn convert_dead_vegetation_to_humus(biomass: f32) -> f32 {
         let converted_biomass = 0.3 * biomass;
-        converted_biomass / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH * HUMUS_DENSITY)
+        converted_biomass
+            / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH * HUMUS_DENSITY)
     }
 
     // returns tuple of vigor and stress
@@ -320,7 +328,8 @@ impl Events {
             }
             temperature if temperature <= T::TEMPERATURE_IDEAL_MAX => 1.0,
             temperature if temperature <= T::TEMPERATURE_LIMIT_MAX => {
-                (temperature - T::TEMPERATURE_LIMIT_MAX) / (T::TEMPERATURE_IDEAL_MAX - T::TEMPERATURE_LIMIT_MAX)
+                (temperature - T::TEMPERATURE_LIMIT_MAX)
+                    / (T::TEMPERATURE_IDEAL_MAX - T::TEMPERATURE_LIMIT_MAX)
             }
             _ => -1.0,
         }
@@ -335,16 +344,16 @@ impl Events {
         let cell = &ecosystem[index];
         // convert moisture in terms of volume to % by volume
         let moisture_volume = cell.get_monthly_soil_moisture(month); // in L
-        // println!("moisture_volume {moisture_volume}");
-        // println!("cell moisture {}", cell.soil_moisture);
-        // bedrock, rock, sand, and humus can all hold water, but make simplifying assumption that all water makes it to humus layer
-        // so each cell is 10x10xheight m, where height is height of humus
-        // 1 cubic meter = 1000 liters
+                                                                     // println!("moisture_volume {moisture_volume}");
+                                                                     // println!("cell moisture {}", cell.soil_moisture);
+                                                                     // bedrock, rock, sand, and humus can all hold water, but make simplifying assumption that all water makes it to humus layer
+                                                                     // so each cell is 10x10xheight m, where height is height of humus
+                                                                     // 1 cubic meter = 1000 liters
         let height = cell.get_humus_height();
         // println!("height {height}");
         let cell_volume =
             constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH * height * 1000.0; // in L
-        // println!("cell_volume {cell_volume}");
+                                                                                         // println!("cell_volume {cell_volume}");
         let moisture = if cell_volume == 0.0 {
             0.0
         } else {
@@ -378,10 +387,11 @@ impl Events {
             illumination if illumination < T::ILLUMINATION_IDEAL_MIN => {
                 (illumination - T::ILLUMINATION_LIMIT_MIN)
                     / (T::ILLUMINATION_IDEAL_MIN - T::ILLUMINATION_LIMIT_MIN)
-            },
+            }
             illumination if illumination <= T::ILLUMINATION_IDEAL_MAX => 1.0,
             illumination if illumination <= T::ILLUMINATION_LIMIT_MAX => {
-                (illumination - T::ILLUMINATION_LIMIT_MAX) / (T::ILLUMINATION_IDEAL_MAX - T::ILLUMINATION_LIMIT_MAX)
+                (illumination - T::ILLUMINATION_LIMIT_MAX)
+                    / (T::ILLUMINATION_IDEAL_MAX - T::ILLUMINATION_LIMIT_MAX)
             }
             _ => -1.0,
         }
@@ -412,6 +422,7 @@ mod tests {
         // 50 cm of humus/soil
         cell.remove_bedrock(0.5);
         cell.add_humus(0.5);
+        cell.soil_moisture = 0.0;
 
         // January
         let temperature_viability =
@@ -479,8 +490,10 @@ mod tests {
 
         let mut viabilities = vec![];
         for i in 0..12 {
-            let temperature_viability = Events::compute_temperature_viability(&ecosystem, index, &trees, i);
-            let moisture_viability = Events::compute_moisture_viability(&ecosystem, index, &trees, i);
+            let temperature_viability =
+                Events::compute_temperature_viability(&ecosystem, index, &trees, i);
+            let moisture_viability =
+                Events::compute_moisture_viability(&ecosystem, index, &trees, i);
             let illumination_viability =
                 Events::compute_illumination_viability(&ecosystem, index, &trees, i);
             let viability = Events::compute_viability(&ecosystem, index, &trees, i);
