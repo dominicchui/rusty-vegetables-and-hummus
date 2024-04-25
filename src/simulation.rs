@@ -41,10 +41,16 @@ impl Simulation {
             // apply random event (todo randomize)
             let index = CellIndex::get_from_flat_index(i);
             Events::apply_event(Events::Lightning, &mut self.ecosystem.ecosystem, index);
+            Events::apply_event(Events::ThermalStress, &mut self.ecosystem.ecosystem, index);
             Events::apply_event(Events::SandSlide, &mut self.ecosystem.ecosystem, index);
             Events::apply_event(Events::RockSlide, &mut self.ecosystem.ecosystem, index);
             Events::apply_event(Events::HumusSlide, &mut self.ecosystem.ecosystem, index);
         }
+
+        let index = CellIndex::new(2, 2);
+        let cell = &self.ecosystem.ecosystem[index];
+        let rocks_height = cell.get_height_of_rock();
+        println!("rocks_height {rocks_height}");
 
         self.ecosystem.update_vertices();
     }

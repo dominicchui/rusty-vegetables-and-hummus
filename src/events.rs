@@ -1,7 +1,8 @@
-mod rock_slide;
-mod sand_slide;
 mod humus_slide;
 mod lightning;
+mod rock_slide;
+mod sand_slide;
+mod thermal_stress;
 
 use nalgebra::Vector3;
 
@@ -9,11 +10,6 @@ use crate::{
     constants::{self, CELL_SIDE_LENGTH},
     ecology::{Cell, CellIndex, Ecosystem},
 };
-
-// trait Event {
-//     // performs and propagates the event until it is finished
-//     fn apply_event(self, ecosystem: &mut Ecosystem, index: CellIndex);
-// }
 
 #[derive(PartialEq, Debug)]
 pub(crate) enum Events {
@@ -28,12 +24,13 @@ pub(crate) enum Events {
 }
 
 impl Events {
+    // performs and propagates the event until it is finished
     pub fn apply_event(self, ecosystem: &mut Ecosystem, index: CellIndex) {
         let mut event_option = Some((self, index));
         while let Some((event, index)) = event_option {
             event_option = match event {
                 Events::Rainfall => todo!(),
-                Events::ThermalStress => todo!(),
+                Events::ThermalStress => Self::apply_thermal_stress_event(ecosystem, index),
                 Events::Lightning => Self::apply_lightning_event(ecosystem, index),
                 Events::RockSlide => Self::apply_rock_slide_event(ecosystem, index),
                 Events::SandSlide => Self::apply_sand_slide_event(ecosystem, index),
@@ -66,6 +63,7 @@ impl Events {
             trees.plant_height_sum = 0.0;
             trees.plant_age_sum = 0.0;
             cell.add_dead_vegetation(biomass);
+            cell.trees = None;
         }
     }
 
@@ -77,6 +75,7 @@ impl Events {
             bushes.plant_height_sum = 0.0;
             bushes.plant_age_sum = 0.0;
             cell.add_dead_vegetation(biomass);
+            cell.bushes = None;
         }
     }
 
@@ -87,6 +86,7 @@ impl Events {
             cell.add_dead_vegetation(
                 coverage_density * CELL_SIDE_LENGTH * CELL_SIDE_LENGTH * constants::GRASS_DENSITY,
             );
+            cell.grasses = None;
         }
     }
 }
@@ -127,11 +127,7 @@ mod tests {
         Events::kill_trees(&mut cell);
 
         let trees = &cell.trees;
-        assert!(trees.is_some());
-        let trees = trees.as_ref().unwrap();
-        assert!(trees.number_of_plants == 0);
-        assert!(trees.plant_age_sum == 0.0);
-        assert!(trees.plant_height_sum == 0.0);
+        assert!(trees.is_none());
 
         let dead_vegetation = &cell.dead_vegetation;
         assert!(dead_vegetation.is_some());
@@ -141,19 +137,18 @@ mod tests {
         assert!(expected == actual, "Expected {expected}, actual {actual}");
 
         // add more trees and kill them
-        let trees = &mut cell.trees.as_mut().unwrap();
-        trees.number_of_plants = 5;
-        trees.plant_height_sum = 150.0;
+        let trees = Trees {
+            number_of_plants: 5,
+            plant_height_sum: 150.0,
+            plant_age_sum: 10.0,
+        };
+        cell.trees = Some(trees);
         let biomass_2 = cell.estimate_tree_biomass();
 
         Events::kill_trees(&mut cell);
 
         let trees = &mut cell.trees;
-        assert!(trees.is_some());
-        let trees = trees.as_ref().unwrap();
-        assert!(trees.number_of_plants == 0);
-        assert!(trees.plant_age_sum == 0.0);
-        assert!(trees.plant_height_sum == 0.0);
+        assert!(trees.is_none());
 
         let dead_vegetation = cell.dead_vegetation;
         assert!(dead_vegetation.is_some());

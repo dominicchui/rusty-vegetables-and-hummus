@@ -3,7 +3,6 @@ use nalgebra::Vector3;
 
 use crate::constants;
 use std::{
-    f32::consts::E,
     fmt,
     ops::{Index, IndexMut},
 };
@@ -83,24 +82,25 @@ pub(crate) enum CellLayer {
     DeadVegetation(Option<DeadVegetation>),
 }
 
+// use the methods to access and modify height of these layers
 #[derive(Clone)]
 pub(crate) struct Bedrock {
-    pub(crate) height: f32,
+    height: f32,
 }
 
 #[derive(Clone)]
 pub(crate) struct Rock {
-    pub(crate) height: f32,
+    height: f32,
 }
 
 #[derive(Clone)]
 pub(crate) struct Sand {
-    pub(crate) height: f32,
+    height: f32,
 }
 
 #[derive(Clone)]
 pub(crate) struct Humus {
-    pub(crate) height: f32,
+    height: f32,
 }
 
 #[derive(Clone, Debug)]
@@ -169,67 +169,60 @@ impl Ecosystem {
     }
 
     pub fn init_test() -> Self {
-        let mut ecosystem = Ecosystem {
-            cells: vec![
-                vec![
-                    Cell {
-                        soil_moisture: 0.0,
-                        sunlight: 0.0,
-                        temperature: 0.0,
-                        bedrock: Some(Bedrock {
-                            height: constants::DEFAULT_BEDROCK_HEIGHT,
-                        }),
-                        rock: None,
-                        sand: None,
-                        humus: None,
-                        trees: None,
-                        bushes: None,
-                        grasses: None,
-                        dead_vegetation: None,
-                    };
-                    constants::AREA_SIDE_LENGTH
-                ];
-                constants::AREA_SIDE_LENGTH
-            ],
-        };
+        let mut ecosystem = Self::init();
         let neighbor_height = 101.0 + f32::sqrt(3.0) / 2.0;
         let c_i = 2;
+
+        let trees = Trees {
+            number_of_plants: 15,
+            plant_height_sum: 150.0,
+            plant_age_sum: 10.0,
+        };
 
         let center = &mut ecosystem[CellIndex::new(c_i, c_i)];
         let bedrock = center.bedrock.as_mut().unwrap();
         bedrock.height = 103.0;
+        // center.trees = Some(trees.clone());
 
         let up = &mut ecosystem[CellIndex::new(c_i, c_i - 1)];
         let bedrock = up.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        // up.trees = Some(trees.clone());
 
         let down = &mut ecosystem[CellIndex::new(c_i, c_i + 1)];
         let bedrock = down.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        // down.trees = Some(trees.clone());
 
         let left = &mut ecosystem[CellIndex::new(c_i - 1, c_i)];
         let bedrock = left.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        left.trees = Some(trees.clone());
 
         let right = &mut ecosystem[CellIndex::new(c_i + 1, c_i)];
         let bedrock = right.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        // right.trees = Some(trees.clone());
 
         let up_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i - 1)];
         let bedrock = up_left.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        up_left.trees = Some(trees.clone());
 
         let up_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i - 1)];
         let bedrock = up_right.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        // up_right.trees = Some(trees.clone());
 
         let down_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i + 1)];
         let bedrock = down_left.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        down_left.trees = Some(trees.clone());
 
         let down_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i + 1)];
         let bedrock = down_right.bedrock.as_mut().unwrap();
         bedrock.height = neighbor_height;
+        // down_right.trees = Some(trees.clone());
 
         ecosystem
     }
@@ -278,7 +271,6 @@ impl Ecosystem {
         cell.add_sand(3.0);
         let cell = &mut ecosystem[CellIndex::new(0, 4)];
         cell.add_sand(4.0);
-
 
         // let cell = &mut ecosystem[CellIndex::new(2, 2)];
         // cell.add_sand(2.0);
@@ -444,17 +436,6 @@ impl Neighbors {
 // }
 
 impl Cell {
-    // pub(crate) fn get_layers(&self) -> Vec<&CellLayer> {
-    //     vec![&CellLayer::Bedrock(self.bedrock),
-    //     &CellLayer::Sand(self.sand),
-    //     &CellLayer::Humus(self.humus),
-    //     &CellLayer::Rock(self.rock),
-    //     &CellLayer::Trees(self.trees),
-    //     &CellLayer::Bushes(self.bushes),
-    //     &CellLayer::Grasses(self.grasses),
-    //     &CellLayer::DeadVegetation(self.dead_vegetation)]
-    // }
-
     pub(crate) fn get_neighbors(index: &CellIndex) -> Neighbors {
         let x = index.x;
         let y = index.y;
@@ -531,6 +512,13 @@ impl Cell {
     }
 
     // *** LAYER ADDERS ***
+    pub(crate) fn add_bedrock(&mut self, height: f32) {
+        if let Some(bedrock) = &mut self.bedrock {
+            bedrock.height += height;
+        } else {
+            self.bedrock = Some(Bedrock { height });
+        }
+    }
 
     pub(crate) fn add_rocks(&mut self, height: f32) {
         if let Some(rocks) = &mut self.rock {
@@ -565,6 +553,12 @@ impl Cell {
     }
 
     // *** LAYER REMOVERS ***
+    pub(crate) fn remove_bedrock(&mut self, height: f32) {
+        if let Some(bedrock) = &mut self.bedrock {
+            bedrock.height -= height;
+        }
+    }
+
     pub(crate) fn remove_sand(&mut self, height: f32) {
         if let Some(sand) = &mut self.sand {
             sand.height -= height;
@@ -583,7 +577,50 @@ impl Cell {
         }
     }
 
-    // *** BIOMASS ESTIMATERS ***
+    // *** HEIGHT GETTERS ***
+
+    pub(crate) fn get_height_of_bedrock(&self) -> f32 {
+        if let Some(bedrock) = &self.bedrock {
+            bedrock.height
+        } else {
+            0.0
+        }
+    }
+
+    pub(crate) fn get_height_of_sand(&self) -> f32 {
+        if let Some(sand) = &self.sand {
+            sand.height
+        } else {
+            0.0
+        }
+    }
+
+    pub(crate) fn get_height_of_humus(&self) -> f32 {
+        if let Some(humus) = &self.humus {
+            humus.height
+        } else {
+            0.0
+        }
+    }
+
+    pub(crate) fn get_height_of_rock(&self) -> f32 {
+        if let Some(rock) = &self.rock {
+            rock.height
+        } else {
+            0.0
+        }
+    }
+
+    // *** HEIGHT SETTERS ***
+    pub(crate) fn set_height_of_bedrock(&mut self, height: f32) {
+        if let Some(bedrock) = &mut self.bedrock {
+            bedrock.height = height;
+        } else {
+            self.bedrock = Some(Bedrock { height });
+        }
+    }
+
+    // *** ECOLOGICAL ESTIMATERS ***
 
     pub(crate) fn estimate_tree_biomass(&self) -> f32 {
         let mut biomass = 0.0;
@@ -602,6 +639,47 @@ impl Cell {
         }
         biomass
     }
+
+    pub(crate) fn estimate_vegetation_density(&self) -> f32 {
+        // sum density of trees, bushes, and grasses
+        let mut density = 0.0;
+        if let Some(trees) = &self.trees {
+            density += Self::estimate_tree_density(trees);
+        }
+        if let Some(bushes) = &self.bushes {
+            density += Self::estimate_bushes_density(bushes);
+        }
+        if let Some(grasses) = &self.grasses {
+            density += grasses.coverage_density;
+        }
+
+        density
+    }
+
+    pub(crate) fn estimate_tree_density(trees: &Trees) -> f32 {
+        // d =nπ(r ·h/n)^2 /w ^2
+        // d = density, n = number of plants, h = sum of plant heights, w = width of cell, r = ratio of plant's canopy radius to height
+        let n = trees.number_of_plants;
+        let h = trees.plant_height_sum;
+        let average_height = h / n as f32;
+        let average_diameter = Trees::estimate_diameter_from_height(average_height);
+        let average_crown_area = Trees::estimate_crown_area_from_diameter(average_diameter);
+        let crown_area_sum = average_crown_area * n as f32;
+        crown_area_sum / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH)
+    }
+
+    pub(crate) fn estimate_bushes_density(bushes: &Bushes) -> f32 {
+        let n = bushes.number_of_plants;
+        let biomass = bushes.estimate_biomass();
+        let average_biomass = biomass / n as f32;
+        let average_crown_area = Bushes::estimate_crown_area_from_biomass(average_biomass);
+        let crown_area_sum = average_crown_area * n as f32;
+        crown_area_sum / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH)
+    }
+
+    // fn estimate_plant_density(&self) -> f32 {
+
+    // }
 }
 
 impl CellLayer {
@@ -617,32 +695,55 @@ impl CellLayer {
 }
 
 impl Trees {
-    pub fn estimate_biomass(&self) -> f32 {
+    pub(crate) fn estimate_biomass(&self) -> f32 {
         // based on allometric equation for red maples
         // source: https://academic.oup.com/forestry/article/87/1/129/602137#9934369
         // ln(biomass in kg) = -2.0470 + 2.3852 * ln(diameter in cm)
         let average_height = self.plant_height_sum / self.number_of_plants as f32;
         let average_diameter = Trees::estimate_diameter_from_height(average_height);
-        let average_biomass = f32::powf(E, -2.0470 + 2.3852 * f32::ln(average_diameter));
+        let average_biomass = f32::powf(
+            std::f32::consts::E,
+            -2.0470 + 2.3852 * f32::ln(average_diameter),
+        );
         average_biomass * self.number_of_plants as f32
     }
 
-    pub fn estimate_diameter_from_height(height: f32) -> f32 {
+    pub(crate) fn estimate_diameter_from_height(height: f32) -> f32 {
         // based on red maples
         // source: https://www.ccsenet.org/journal/index.php/jps/article/view/69956
         // log(height in m) = 0.6 * log(diameter in cm) - 0.4
-        f32::powf(10.0, (f32::log10(height) - 0.6) / 0.4)
+        f32::powf(10.0, (f32::log10(height) - 0.4) / 0.6)
+    }
+
+    pub(crate) fn estimate_crown_area_from_diameter(diameter: f32) -> f32 {
+        // based on red maples
+        // source: https://www.fs.usda.gov/rds/archive/Catalog/RDS-2016-0005
+        // crown diameter in m = a + b * (dbh in cm) + c * dhb^2
+        let crown_diameter = 0.72545 + 0.2537 * diameter + -0.00123 * diameter * diameter;
+        // assume crown is circular, compute area in square meters
+        let radius = crown_diameter / 2.0;
+        std::f32::consts::PI * radius * radius
     }
 }
 
 impl Bushes {
-    pub fn estimate_biomass(&self) -> f32 {
-        // based on allometric equation for rhododendren mariesii
+    pub(crate) fn estimate_biomass(&self) -> f32 {
+        // based on allometric equation for rhododendron mariesii
         // source: https://link.springer.com/article/10.1007/s11056-023-09963-z
         // ln(biomass in kg) = -2.635 + 3.614 * ln(height in m)
         let average_height = self.plant_height_sum / self.number_of_plants as f32;
-        let average_biomass = f32::powf(E, -2.635 + 3.614 * f32::ln(average_height));
+        let average_biomass = f32::powf(
+            std::f32::consts::E,
+            -2.635 + 3.614 * f32::ln(average_height),
+        );
         average_biomass * self.number_of_plants as f32
+    }
+
+    pub(crate) fn estimate_crown_area_from_biomass(biomass: f32) -> f32 {
+        // based on allometric equation for rhododendron mariesii
+        // source: https://link.springer.com/article/10.1007/s11056-023-09963-z
+        // ln(crown area in m^2) = (ln(biomass in kg) + 0.435) / 1.324
+        f32::powf(std::f32::consts::E, (f32::ln(biomass) + 0.435) / 1.324)
     }
 }
 
@@ -893,6 +994,48 @@ mod tests {
     }
 
     #[test]
+    fn test_estimate_tree_density() {
+        // one tree
+        let trees = Trees {
+            number_of_plants: 1,
+            plant_height_sum: 10.0,
+            plant_age_sum: 10.0,
+        };
+        let density = Cell::estimate_tree_density(&trees);
+        let expected = 0.0774;
+        assert!(
+            approx_eq!(f32, density, expected, epsilon = 0.001),
+            "Expected {expected}, actual {density}"
+        );
+
+        // two trees
+        let trees = Trees {
+            number_of_plants: 2,
+            plant_height_sum: 20.0,
+            plant_age_sum: 10.0,
+        };
+        let density = Cell::estimate_tree_density(&trees);
+        let expected = 0.0774 * 2.0;
+        assert!(
+            approx_eq!(f32, density, expected, epsilon = 0.001),
+            "Expected {expected}, actual {density}"
+        );
+
+        // many trees
+        let trees = Trees {
+            number_of_plants: 15,
+            plant_height_sum: 150.0,
+            plant_age_sum: 10.0,
+        };
+        let density = Cell::estimate_tree_density(&trees);
+        let expected = 0.0774 * 15.0;
+        assert!(
+            approx_eq!(f32, density, expected, epsilon = 0.001),
+            "Expected {expected}, actual {density}"
+        );
+    }
+
+    #[test]
     fn test_estimate_bush_biomass() {
         let bushes = Bushes {
             number_of_plants: 1,
@@ -928,6 +1071,35 @@ mod tests {
         assert!(
             approx_eq!(f32, volume, expected, epsilon = 0.001),
             "Expected volume {expected}, actual volume {volume}"
+        );
+    }
+
+    #[test]
+    fn test_estimate_bushes_density() {
+        // one bush
+        let bushes = Bushes {
+            number_of_plants: 1,
+            plant_height_sum: 2.0,
+            plant_age_sum: 10.0,
+        };
+        let density = Cell::estimate_bushes_density(&bushes);
+        let expected = 0.0126;
+        assert!(
+            approx_eq!(f32, density, expected, epsilon = 0.001),
+            "Expected {expected}, actual {density}"
+        );
+
+        // many bushes
+        let bushes = Bushes {
+            number_of_plants: 10,
+            plant_height_sum: 20.0,
+            plant_age_sum: 10.0,
+        };
+        let density = Cell::estimate_bushes_density(&bushes);
+        let expected = 0.126;
+        assert!(
+            approx_eq!(f32, density, expected, epsilon = 0.001),
+            "Expected {expected}, actual {density}"
         );
     }
 }
