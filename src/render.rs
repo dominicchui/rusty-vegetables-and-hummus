@@ -26,7 +26,7 @@ pub(crate) struct EcosystemRenderable {
 
 impl EcosystemRenderable {
     pub fn init() -> Self {
-        let ecosystem = Ecosystem::init_test();
+        let ecosystem = Ecosystem::init_piles();
 
         // initialize based on the cell grid of the ecosystem
         let num_cells = constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH;
@@ -45,7 +45,7 @@ impl EcosystemRenderable {
                 let height = cell.get_height();
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(ecosystem.get_normal(index));
-                colors.push(Vector3::new(0.61, 0.46, 0.33));
+                colors.push(ecosystem.get_color(index));
             }
         }
         // simple tessellation of square grid
@@ -65,6 +65,16 @@ impl EcosystemRenderable {
                 lines.push(Vector2::new(bottom, bottom_right));
             }
         }
+
+        // add trees and bushes
+        // for i in 0..constants::AREA_SIDE_LENGTH {
+        //     for j in 0..constants::AREA_SIDE_LENGTH {
+        //         let index = CellIndex::new(i, j);
+        //         let cell = &ecosystem[index];
+        //         let center: Vector3<f32> = Vector3::new(i as f32, j as f32, cell.get_height());
+        //         addTree(center, , verts, normals, colors, faces);
+        //     }
+        // }
 
         let mut ecosystem_render = EcosystemRenderable {
             ecosystem,
@@ -224,9 +234,9 @@ impl EcosystemRenderable {
 
     fn populate_vbo(
         m_vbo: GLuint,
-        verts: &Vec<Vector3<f32>>,
-        normals: &Vec<Vector3<f32>>,
-        colors: &Vec<Vector3<f32>>,
+        verts: &[Vector3<f32>],
+        normals: &[Vector3<f32>],
+        colors: &[Vector3<f32>],
     ) {
         unsafe {
             gl::BindBuffer(gl::ARRAY_BUFFER, m_vbo);
@@ -278,7 +288,7 @@ impl EcosystemRenderable {
                 let height = cell.get_height();
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(self.ecosystem.get_normal(index));
-                colors.push(Vector3::new(0.61, 0.46, 0.33));
+                colors.push(self.ecosystem.get_color(index));
             }
         }
         EcosystemRenderable::populate_vbo(self.m_vbo, &verts, &normals, &colors);
