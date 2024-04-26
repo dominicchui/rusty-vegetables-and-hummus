@@ -66,7 +66,6 @@ pub(crate) struct Cell {
     dead_vegetation: Option<DeadVegetation>,
 
     pub(crate) soil_moisture: f32,
-    pub(crate) sunlight: f32,
 }
 
 #[derive(Clone)]
@@ -134,7 +133,6 @@ impl Ecosystem {
                 vec![
                     Cell {
                         soil_moisture: 1.8E5,
-                        sunlight: 0.0,
                         bedrock: Some(Bedrock {
                             height: constants::DEFAULT_BEDROCK_HEIGHT,
                         }),
@@ -329,7 +327,6 @@ impl Cell {
     pub(crate) fn init() -> Self {
         Cell {
             soil_moisture: 0.0,
-            sunlight: 0.0,
             bedrock: None,
             rock: None,
             sand: None,
@@ -621,10 +618,6 @@ impl Cell {
         let crown_area_sum = average_crown_area * n as f32;
         crown_area_sum / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH)
     }
-
-    // fn estimate_plant_density(&self) -> f32 {
-
-    // }
 }
 
 impl CellLayer {
@@ -640,7 +633,7 @@ impl CellLayer {
 }
 
 impl Trees {
-    pub(crate) fn init() -> Self {
+    pub(crate) fn new() -> Self {
         Trees {
             number_of_plants: 0,
             plant_height_sum: 0.0,
@@ -683,7 +676,7 @@ impl Trees {
 }
 
 impl Bushes {
-    pub(crate) fn init() -> Self {
+    pub(crate) fn new() -> Self {
         Bushes {
             number_of_plants: 0,
             plant_height_sum: 0.0,
@@ -717,7 +710,7 @@ impl Bushes {
 }
 
 impl Grasses {
-    pub(crate) fn init() -> Self {
+    pub(crate) fn new() -> Self {
         Grasses {
             coverage_density: 0.0,
         }
@@ -816,7 +809,6 @@ mod tests {
         };
         let cell = Cell {
             soil_moisture: 0.0,
-            sunlight: 0.0,
             bedrock: Some(bedrock),
             rock: Some(rock),
             sand: Some(sand),
@@ -833,7 +825,6 @@ mod tests {
     fn test_get_temperature() {
         let mut cell = Cell {
             soil_moisture: 0.0,
-            sunlight: 0.0,
             bedrock: None,
             rock: None,
             sand: None,
@@ -999,7 +990,6 @@ mod tests {
         };
         let mut cell = Cell {
             soil_moisture: 0.0,
-            sunlight: 0.0,
             bedrock: None,
             rock: None,
             sand: None,
@@ -1089,7 +1079,6 @@ mod tests {
         };
         let mut cell = Cell {
             soil_moisture: 0.0,
-            sunlight: 0.0,
             bedrock: None,
             rock: None,
             sand: None,

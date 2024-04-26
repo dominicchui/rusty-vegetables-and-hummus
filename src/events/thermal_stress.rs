@@ -11,10 +11,7 @@ const BEDROCK_FRACTURE_HEIGHT: f32 = 1.0;
 use rand::Rng;
 
 use super::Events;
-use crate::{
-    constants,
-    ecology::{Cell, CellIndex, Ecosystem},
-};
+use crate::ecology::{Cell, CellIndex, Ecosystem};
 
 impl Events {
     pub(crate) fn apply_thermal_stress_event(
@@ -68,10 +65,8 @@ impl Events {
 #[cfg(test)]
 mod tests {
     use float_cmp::approx_eq;
-    use nalgebra::Vector3;
 
     use crate::{
-        constants,
         ecology::{Bushes, Cell, CellIndex, Ecosystem, Grasses, Trees},
         events::{
             thermal_stress::{GRANULAR_DAMPENING_CONSTANT, VEGETATION_DAMPENING_CONSTANT},

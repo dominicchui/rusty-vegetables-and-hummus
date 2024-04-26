@@ -71,7 +71,7 @@ impl Vegetation for Trees {
         if let Some(trees) = &cell.trees {
             trees.clone()
         } else {
-            Trees::init()
+            Trees::new()
         }
     }
 
@@ -107,7 +107,7 @@ impl Vegetation for Bushes {
         if let Some(bushes) = &cell.bushes {
             bushes.clone()
         } else {
-            Bushes::init()
+            Bushes::new()
         }
     }
 
@@ -147,7 +147,7 @@ impl Vegetation for Grasses {
         if let Some(grasses) = &cell.grasses {
             grasses.clone()
         } else {
-            Grasses::init()
+            Grasses::new()
         }
     }
 
@@ -449,7 +449,7 @@ impl Events {
                 vegetation.kill_plants(1);
                 density = vegetation.estimate_density();
             }
-            let overpopulation_deaths = pre_death_count - vegetation.get_number_of_plants();
+            // let overpopulation_deaths = pre_death_count - vegetation.get_number_of_plants();
             // println!("overpopulation_deaths {overpopulation_deaths}");
 
             // 2) stress (non-positive real number)
@@ -666,8 +666,7 @@ mod tests {
     use float_cmp::approx_eq;
 
     use crate::{
-        constants,
-        ecology::{Bushes, Cell, CellIndex, Ecosystem, Grasses, Trees},
+        ecology::{Bushes, CellIndex, Ecosystem, Grasses, Trees},
         events::Events,
     };
 
