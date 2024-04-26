@@ -3,7 +3,7 @@ pub(crate) const SCREEN_HEIGHT: usize = 1000;
 pub(crate) const SPEED: f32 = AREA_SIDE_LENGTH as f32;
 
 // https://extension.psu.edu/calculating-the-green-weight-of-wood-species
-pub(crate) const AREA_SIDE_LENGTH: usize = 5; // in cells
+pub(crate) const AREA_SIDE_LENGTH: usize = 100; // in cells
 pub(crate) const CELL_SIDE_LENGTH: f32 = 10.0; // in meters
 pub(crate) const DEFAULT_BEDROCK_HEIGHT: f32 = 100.0; // in meters
 

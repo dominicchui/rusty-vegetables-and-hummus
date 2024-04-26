@@ -50,10 +50,8 @@ impl EcosystemRenderable {
                 // 0 density => g = 118
                 // 1 density => g = 240
                 let green = if let Some(vegetation) = &cell.trees {
-                    f32::min(
-                        1.0,
-                        (118.0 + 122.0 * Cell::estimate_tree_density(vegetation)) / 255.0,
-                    )
+                    let density = Cell::estimate_tree_density(vegetation); //vegetation.coverage_density;
+                    f32::min(1.0, (118.0 + 122.0 * density) / 255.0)
                 } else {
                     0.46
                 };
@@ -300,11 +298,8 @@ impl EcosystemRenderable {
                 normals.push(self.ecosystem.get_normal(index));
                 // todo remove
                 let green = if let Some(vegetation) = &cell.trees {
-                    f32::min(
-                        1.0,
-                        (118.0 + 122.0 * Cell::estimate_tree_density(vegetation)) / 255.0,
-                    )
-                    // 1.0
+                    let density = Cell::estimate_tree_density(vegetation); //vegetation.coverage_density;
+                    f32::min(1.0, (118.0 + 122.0 * density) / 255.0)
                 } else {
                     0.46
                 };

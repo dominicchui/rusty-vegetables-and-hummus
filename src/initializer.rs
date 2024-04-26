@@ -25,7 +25,6 @@ impl Ecosystem {
 
     pub fn init_test() -> Self {
         let mut ecosystem = Self::init();
-        let neighbor_height = 1.0;
         let c_i = 2;
 
         let trees = Trees {

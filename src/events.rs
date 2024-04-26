@@ -39,9 +39,9 @@ impl Events {
                 Events::SandSlide => Self::apply_sand_slide_event(ecosystem, index),
                 Events::HumusSlide => Self::apply_humus_slide_event(ecosystem, index),
                 Events::Fire => todo!(),
-                Events::VegetationTrees => Self::apply_vegetation_trees_event(ecosystem, index),
-                Events::VegetationBushes => Self::apply_vegetation_bushes_event(ecosystem, index),
-                Events::VegetationGrasses => todo!(),
+                Events::VegetationTrees => Self::apply_trees_event(ecosystem, index),
+                Events::VegetationBushes => Self::apply_bushes_event(ecosystem, index),
+                Events::VegetationGrasses => Self::apply_grasses_event(ecosystem, index),
             };
         }
     }

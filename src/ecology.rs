@@ -578,6 +578,15 @@ impl Cell {
         biomass
     }
 
+    pub(crate) fn estimate_grasses_biomass(&self) -> f32 {
+        let mut biomass = 0.0;
+        // assume max one bush layer
+        if let Some(grasses) = &self.grasses {
+            biomass += grasses.estimate_biomass();
+        }
+        biomass
+    }
+
     pub(crate) fn estimate_vegetation_density(&self) -> f32 {
         // sum density of trees, bushes, and grasses
         let mut density = 0.0;
@@ -704,6 +713,24 @@ impl Bushes {
         // source: https://link.springer.com/article/10.1007/s11056-023-09963-z
         // ln(crown area in m^2) = (ln(biomass in kg) + 0.435) / 1.324
         f32::powf(std::f32::consts::E, (f32::ln(biomass) + 0.435) / 1.324)
+    }
+}
+
+impl Grasses {
+    pub(crate) fn init() -> Self {
+        Grasses {
+            coverage_density: 0.0,
+        }
+    }
+
+    // source: http://switchgrass.okstate.edu/what-is-switchgrass
+    // 2 tons/acre/year ≈ 0.45 kg/square meter/year
+    pub(crate) fn estimate_biomass(&self) -> f32 {
+        Self::estimate_biomass_for_coverage_density(self.coverage_density)
+    }
+
+    pub(crate) fn estimate_biomass_for_coverage_density(density: f32) -> f32 {
+        density * 0.45
     }
 }
 

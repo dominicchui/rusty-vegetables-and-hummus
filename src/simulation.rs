@@ -48,9 +48,10 @@ impl Simulation {
                 Events::HumusSlide,
                 Events::VegetationTrees,
                 Events::VegetationBushes,
+                Events::VegetationGrasses,
             ];
             events.shuffle(&mut thread_rng());
-            println!("Events {events:?}");
+            // println!("Events {events:?}");
 
             let index = CellIndex::get_from_flat_index(i);
             for event in events {
