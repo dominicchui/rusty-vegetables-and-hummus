@@ -37,19 +37,19 @@ impl Ecosystem {
         let center = &mut ecosystem[CellIndex::new(c_i, c_i)];
         center.add_bedrock(2.0);
         center.add_humus(0.5);
-        center.soil_moisture = 1.8E5;
+        // center.soil_moisture = 1.8E5;
         // center.trees = Some(trees.clone());
 
         let up = &mut ecosystem[CellIndex::new(c_i, c_i - 1)];
         up.add_bedrock(1.0);
         up.add_humus(0.5);
-        up.soil_moisture = 1.8E5;
+        // up.soil_moisture = 1.8E5;
         // up.trees = Some(trees.clone());
 
         let down = &mut ecosystem[CellIndex::new(c_i, c_i + 1)];
         down.add_bedrock(1.0);
         down.add_humus(0.5);
-        down.soil_moisture = 1.8E5;
+        // down.soil_moisture = 1.8E5;
         // down.trees = Some(trees.clone());
 
         let left = &mut ecosystem[CellIndex::new(c_i - 1, c_i)];
@@ -61,7 +61,7 @@ impl Ecosystem {
         let right = &mut ecosystem[CellIndex::new(c_i + 1, c_i)];
         right.add_bedrock(1.0);
         right.add_humus(0.5);
-        right.soil_moisture = 1.8E5;
+        // right.soil_moisture = 1.8E5;
         // right.trees = Some(trees.clone());
 
         let up_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i - 1)];
@@ -73,19 +73,19 @@ impl Ecosystem {
         let up_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i - 1)];
         up_right.add_bedrock(1.0);
         up_right.add_humus(0.5);
-        up_right.soil_moisture = 1.8E5;
+        // up_right.soil_moisture = 1.8E5;
         // up_right.trees = Some(trees.clone());
 
         let down_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i + 1)];
         down_left.add_bedrock(1.0);
         down_left.add_humus(0.5);
-        down_left.soil_moisture = 1.8E5;
+        // down_left.soil_moisture = 1.8E5;
         down_left.trees = Some(trees.clone());
 
         let down_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i + 1)];
         down_right.add_bedrock(1.0);
         down_right.add_humus(0.5);
-        down_right.soil_moisture = 1.8E5;
+        // down_right.soil_moisture = 1.8E5;
         // down_right.trees = Some(trees.clone());
 
         ecosystem
@@ -177,6 +177,7 @@ mod tests {
             "Expected {expected}, actual{height}"
         );
 
+        // about zero humus on 0˚slope
         let height = Ecosystem::get_initial_humus_height(1.0);
         let expected = constants::DEFAULT_HUMUS_HEIGHT * 0.0;
         assert!(

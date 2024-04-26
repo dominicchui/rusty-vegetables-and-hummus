@@ -40,7 +40,7 @@ impl Events {
                 Events::HumusSlide => Self::apply_humus_slide_event(ecosystem, index),
                 Events::Fire => todo!(),
                 Events::VegetationTrees => Self::apply_vegetation_trees_event(ecosystem, index),
-                Events::VegetationBushes => todo!(),
+                Events::VegetationBushes => Self::apply_vegetation_bushes_event(ecosystem, index),
                 Events::VegetationGrasses => todo!(),
             };
         }

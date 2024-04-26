@@ -39,18 +39,23 @@ impl Simulation {
         let mut humus_heights = vec![];
 
         for i in vec {
-            // apply random event (todo randomize)
-            let index = CellIndex::get_from_flat_index(i);
-            Events::apply_event(Events::Lightning, &mut self.ecosystem.ecosystem, index);
-            Events::apply_event(Events::ThermalStress, &mut self.ecosystem.ecosystem, index);
-            Events::apply_event(Events::SandSlide, &mut self.ecosystem.ecosystem, index);
-            Events::apply_event(Events::RockSlide, &mut self.ecosystem.ecosystem, index);
-            Events::apply_event(Events::HumusSlide, &mut self.ecosystem.ecosystem, index);
-            Events::apply_event(
+            // apply random event
+            let mut events = [
+                Events::Lightning,
+                Events::ThermalStress,
+                Events::SandSlide,
+                Events::RockSlide,
+                Events::HumusSlide,
                 Events::VegetationTrees,
-                &mut self.ecosystem.ecosystem,
-                index,
-            );
+                Events::VegetationBushes,
+            ];
+            events.shuffle(&mut thread_rng());
+            println!("Events {events:?}");
+
+            let index = CellIndex::get_from_flat_index(i);
+            for event in events {
+                Events::apply_event(event, &mut self.ecosystem.ecosystem, index);
+            }
             let cell = &self.ecosystem.ecosystem[index];
             humus_heights.push(cell.get_humus_height());
         }

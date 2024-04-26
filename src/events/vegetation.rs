@@ -13,7 +13,7 @@ const DEAD_VEGETATION_TO_HUMUS_RATE: f32 = 0.3;
 const HUMUS_DENSITY: f32 = 1500.0; // in kg per cubic meter
 
 // viability constants for vegetation
-trait Vegetation {
+pub(crate) trait Vegetation {
     // temperature in celsius
     const TEMPERATURE_LIMIT_MIN: f32;
     const TEMPERATURE_LIMIT_MAX: f32;
@@ -44,6 +44,10 @@ trait Vegetation {
     const STRESS_DEATH_CONSTANT: f32;
     // impact of age on number of plants
     const SENESCENCE_DEATH_CONSTANT: f32;
+
+    // returns how much of the illumination of the cell should be applied to this vegetation layer based on coverage from other vegetation
+    // e.g. bushes and grasses will be partially shaded by trees
+    fn get_illumination_coverage_constant(cell: &Cell) -> f32;
 }
 
 impl Vegetation for Trees {
@@ -75,33 +79,48 @@ impl Vegetation for Trees {
     const LIFE_EXPECTANCY: f32 = 80.0;
     const STRESS_DEATH_CONSTANT: f32 = 1.0;
     const SENESCENCE_DEATH_CONSTANT: f32 = 0.05;
+
+    // trees are not shaded by other vegetation
+    fn get_illumination_coverage_constant(_: &Cell) -> f32 {
+        1.0
+    }
 }
 
 impl Vegetation for Bushes {
-    const TEMPERATURE_LIMIT_MIN: f32 = 0.0;
-    const TEMPERATURE_IDEAL_MIN: f32 = 0.0;
-    const TEMPERATURE_IDEAL_MAX: f32 = 0.0;
-    const TEMPERATURE_LIMIT_MAX: f32 = 0.0;
+    const TEMPERATURE_LIMIT_MIN: f32 = -30.0;
+    const TEMPERATURE_IDEAL_MIN: f32 = 4.0;
+    const TEMPERATURE_IDEAL_MAX: f32 = 16.0;
+    const TEMPERATURE_LIMIT_MAX: f32 = 30.0;
 
     // sources:
     // https://www.acurite.com/blog/soil-moisture-guide-for-plants-and-vegetables.html
-    const MOISTURE_LIMIT_MIN: f32 = 0.0;
-    const MOISTURE_IDEAL_MIN: f32 = 40.0;
-    const MOISTURE_IDEAL_MAX: f32 = 60.0;
-    const MOISTURE_LIMIT_MAX: f32 = 0.0;
+    const MOISTURE_LIMIT_MIN: f32 = 0.2;
+    const MOISTURE_IDEAL_MIN: f32 = 0.4;
+    const MOISTURE_IDEAL_MAX: f32 = 0.6;
+    const MOISTURE_LIMIT_MAX: f32 = 0.8;
 
-    const ILLUMINATION_LIMIT_MIN: f32 = 0.0;
-    const ILLUMINATION_IDEAL_MIN: f32 = 0.0;
-    const ILLUMINATION_IDEAL_MAX: f32 = 0.0;
-    const ILLUMINATION_LIMIT_MAX: f32 = 0.0;
+    const ILLUMINATION_LIMIT_MIN: f32 = 2.0;
+    const ILLUMINATION_IDEAL_MIN: f32 = 4.0;
+    const ILLUMINATION_IDEAL_MAX: f32 = 6.0;
+    const ILLUMINATION_LIMIT_MAX: f32 = 12.0;
 
-    const ESTABLISHMENT_RATE: f32 = 0.0;
-    const SEEDLING_DENSITY_CONSTANT: f32 = 0.0;
-    const SEEDLING_VIGOR_CONSTANT: f32 = 0.0;
-    const GROWTH_RATE: f32 = 0.0;
-    const LIFE_EXPECTANCY: f32 = 0.0;
-    const STRESS_DEATH_CONSTANT: f32 = 0.0;
-    const SENESCENCE_DEATH_CONSTANT: f32 = 0.0;
+    const ESTABLISHMENT_RATE: f32 = 0.24;
+    const SEEDLING_DENSITY_CONSTANT: f32 = 0.05;
+    const SEEDLING_VIGOR_CONSTANT: f32 = 0.5;
+    const GROWTH_RATE: f32 = 0.2;
+    const LIFE_EXPECTANCY: f32 = 20.0;
+    const STRESS_DEATH_CONSTANT: f32 = 1.0;
+    const SENESCENCE_DEATH_CONSTANT: f32 = 0.05;
+
+    fn get_illumination_coverage_constant(cell: &Cell) -> f32 {
+        if let Some(trees) = &cell.trees {
+            let tree_density = Cell::estimate_tree_density(trees);
+            // todo placeholder value
+            tree_density * 0.5
+        } else {
+            1.0
+        }
+    }
 }
 
 impl Vegetation for Grasses {
@@ -127,10 +146,178 @@ impl Vegetation for Grasses {
     const LIFE_EXPECTANCY: f32 = 0.0;
     const STRESS_DEATH_CONSTANT: f32 = 0.0;
     const SENESCENCE_DEATH_CONSTANT: f32 = 0.0;
+
+    fn get_illumination_coverage_constant(cell: &Cell) -> f32 {
+        let mut modifier = 1.0;
+        if let Some(trees) = &cell.trees {
+            let tree_density = Cell::estimate_tree_density(trees);
+            // todo placeholder value
+            modifier *= 0.5 * tree_density;
+        }
+        if let Some(bushes) = &cell.bushes {
+            let bushes_density = Cell::estimate_bushes_density(bushes);
+            // todo placeholder value
+            modifier *= 0.5 * bushes_density;
+        }
+
+        modifier
+    }
 }
 
-trait Individualized {
-    // get density
+pub(crate) trait Individualized {
+    fn init(number_of_plants: u32, plant_height_sum: f32, plant_age_sum: f32) -> Self;
+    // if cell contains this plant, return it, otherwise init an empty one
+    fn clone_from_cell(cell: &Cell) -> Self;
+    fn set_in_cell(self, cell: &mut Cell);
+    fn estimate_density(&self) -> f32;
+    fn estimate_biomass(&self) -> f32;
+    fn get_number_of_plants(&self) -> u32;
+    fn get_plant_height_sum(&self) -> f32;
+    fn get_plant_age_sum(&self) -> f32;
+    fn update_number_of_plants(&mut self, amount: i32);
+    fn update_plant_height_sum(&mut self, amount: f32);
+    fn update_plant_age_sum(&mut self, amount: f32);
+    fn kill_plants(&mut self, amount: u32);
+}
+
+impl Individualized for Trees {
+    fn init(number_of_plants: u32, plant_height_sum: f32, plant_age_sum: f32) -> Self {
+        Trees {
+            number_of_plants,
+            plant_height_sum,
+            plant_age_sum,
+        }
+    }
+
+    fn clone_from_cell(cell: &Cell) -> Self {
+        if let Some(trees) = &cell.trees {
+            trees.clone()
+        } else {
+            Trees::init()
+        }
+    }
+
+    fn set_in_cell(self, cell: &mut Cell) {
+        if self.get_number_of_plants() > 0 {
+            cell.trees = Some(self);
+        } else {
+            cell.trees = None;
+        }
+    }
+
+    fn estimate_density(&self) -> f32 {
+        Cell::estimate_tree_density(self)
+    }
+
+    fn estimate_biomass(&self) -> f32 {
+        self.estimate_biomass()
+    }
+
+    fn get_number_of_plants(&self) -> u32 {
+        self.number_of_plants
+    }
+
+    fn get_plant_height_sum(&self) -> f32 {
+        self.plant_height_sum
+    }
+
+    fn get_plant_age_sum(&self) -> f32 {
+        self.plant_age_sum
+    }
+
+    fn update_number_of_plants(&mut self, amount: i32) {
+        if amount > 0 {
+            self.number_of_plants += amount as u32;
+        } else {
+            self.number_of_plants -= (-amount) as u32;
+        }
+    }
+
+    fn update_plant_height_sum(&mut self, amount: f32) {
+        self.plant_height_sum += amount;
+    }
+
+    fn update_plant_age_sum(&mut self, amount: f32) {
+        self.plant_age_sum += amount;
+    }
+
+    fn kill_plants(&mut self, amount: u32) {
+        let average_plant_height = self.get_plant_height_sum() / self.get_number_of_plants() as f32;
+        let average_plant_age = self.get_plant_age_sum() / self.get_number_of_plants() as f32;
+        self.update_number_of_plants(-(amount as i32));
+        self.update_plant_height_sum(-(amount as f32) * average_plant_height);
+        self.update_plant_age_sum(-(amount as f32) * average_plant_age);
+    }
+}
+
+impl Individualized for Bushes {
+    fn init(number_of_plants: u32, plant_height_sum: f32, plant_age_sum: f32) -> Self {
+        Bushes {
+            number_of_plants,
+            plant_height_sum,
+            plant_age_sum,
+        }
+    }
+
+    fn clone_from_cell(cell: &Cell) -> Self {
+        if let Some(bushes) = &cell.bushes {
+            bushes.clone()
+        } else {
+            Bushes::init()
+        }
+    }
+
+    fn set_in_cell(self, cell: &mut Cell) {
+        if self.get_number_of_plants() > 0 {
+            cell.bushes = Some(self);
+        } else {
+            cell.bushes = None;
+        }
+    }
+
+    fn estimate_density(&self) -> f32 {
+        Cell::estimate_bushes_density(self)
+    }
+
+    fn estimate_biomass(&self) -> f32 {
+        self.estimate_biomass()
+    }
+
+    fn get_number_of_plants(&self) -> u32 {
+        self.number_of_plants
+    }
+
+    fn get_plant_height_sum(&self) -> f32 {
+        self.plant_height_sum
+    }
+
+    fn get_plant_age_sum(&self) -> f32 {
+        self.plant_age_sum
+    }
+
+    fn update_number_of_plants(&mut self, amount: i32) {
+        if amount > 0 {
+            self.number_of_plants += amount as u32;
+        } else {
+            self.number_of_plants -= (-amount) as u32;
+        }
+    }
+
+    fn update_plant_height_sum(&mut self, amount: f32) {
+        self.plant_height_sum += amount;
+    }
+
+    fn update_plant_age_sum(&mut self, amount: f32) {
+        self.plant_age_sum += amount;
+    }
+
+    fn kill_plants(&mut self, amount: u32) {
+        let average_plant_height = self.get_plant_height_sum() / self.get_number_of_plants() as f32;
+        let average_plant_age = self.get_plant_age_sum() / self.get_number_of_plants() as f32;
+        self.update_number_of_plants(-(amount as i32));
+        self.update_plant_height_sum(-(amount as f32) * average_plant_height);
+        self.update_plant_age_sum(-(amount as f32) * average_plant_age);
+    }
 }
 
 impl Events {
@@ -139,31 +326,40 @@ impl Events {
         index: CellIndex,
     ) -> Option<(Events, CellIndex)> {
         let cell = &ecosystem[index];
-        // println!("\nindex {index} trees {:?}", cell.trees);
+        let trees = Trees::clone_from_cell(cell);
+        Self::apply_individualized_vegetation_event(ecosystem, index, trees)
+    }
+
+    pub(crate) fn apply_vegetation_bushes_event(
+        ecosystem: &mut Ecosystem,
+        index: CellIndex,
+    ) -> Option<(Events, CellIndex)> {
+        let cell = &ecosystem[index];
+        let bushes = Bushes::clone_from_cell(cell);
+        Self::apply_individualized_vegetation_event(ecosystem, index, bushes)
+    }
+
+    pub(crate) fn apply_individualized_vegetation_event<
+        T: Vegetation + Individualized + std::fmt::Debug,
+    >(
+        ecosystem: &mut Ecosystem,
+        index: CellIndex,
+        mut vegetation: T,
+    ) -> Option<(Events, CellIndex)> {
         let mut new_dead_biomass = 0.0;
-        let mut new_trees_option: Option<Trees> = None;
 
-        let mut new_trees = if let Some(trees) = &cell.trees {
-            trees.clone()
-        } else {
-            // no trees so potentially germinate some
-            Trees::init()
-        };
-
-        let (vigor, stress) = Self::compute_vigor_and_stress(ecosystem, index, &new_trees);
+        let (vigor, stress) = Self::compute_vigor_and_stress(ecosystem, index, &vegetation);
 
         // Germination
-        let mut density = Cell::estimate_tree_density(&new_trees);
+        let mut density = vegetation.estimate_density();
         // println!("vigor {vigor}, stress {stress}, density {density}");
         if stress == 0.0 && density < 1.0 {
             // convert establishment rate from plants per square meter to plants per cell
-            let mut seedling_count = (Trees::ESTABLISHMENT_RATE
-                * constants::CELL_SIDE_LENGTH
-                * constants::CELL_SIDE_LENGTH)
-                * (Trees::SEEDLING_DENSITY_CONSTANT * (1.0 - density))
-                * Trees::SEEDLING_VIGOR_CONSTANT
-                * vigor;
-            // println!("seedling_count {seedling_count}");
+            let mut seedling_count =
+                (T::ESTABLISHMENT_RATE * constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH)
+                    * (T::SEEDLING_DENSITY_CONSTANT * (1.0 - density))
+                    * T::SEEDLING_VIGOR_CONSTANT
+                    * vigor;
             // if seedling count is < 0, use it as probability of new seedling
             if seedling_count > 0.0 && seedling_count < 1.0 {
                 let mut rng = rand::thread_rng();
@@ -172,75 +368,78 @@ impl Events {
                     seedling_count = 1.0;
                 }
             }
-            new_trees.number_of_plants += seedling_count as u32;
+            vegetation.update_number_of_plants(seedling_count as i32);
         }
+        // println!("Vegetation initial {vegetation:?}");
 
-        // need trees from here on
-        if new_trees.number_of_plants > 0 {
+        // need non-zero vegetation from here on
+        if vegetation.get_number_of_plants() > 0 {
             // Growth
-            new_trees.plant_height_sum += new_trees.number_of_plants as f32 * Trees::GROWTH_RATE;
-            new_trees.plant_age_sum += new_trees.number_of_plants as f32;
+            vegetation
+                .update_plant_height_sum(vegetation.get_number_of_plants() as f32 * T::GROWTH_RATE);
+            vegetation.update_plant_age_sum(vegetation.get_number_of_plants() as f32);
 
-            // Death
-            let pre_death_count = new_trees.number_of_plants;
+            // Death from three factors
+            let pre_death_count = vegetation.get_number_of_plants();
+            let pre_death_average_height =
+                vegetation.get_plant_height_sum() / pre_death_count as f32;
 
-            // overpopulation
-            while density > 1.0 && new_trees.number_of_plants > 1 {
-                let average_plant_height =
-                    new_trees.plant_height_sum / new_trees.number_of_plants as f32;
-                let average_plant_age = new_trees.plant_age_sum / new_trees.number_of_plants as f32;
-                new_trees.number_of_plants -= 1;
-                new_trees.plant_height_sum -= average_plant_height;
-                new_trees.plant_age_sum -= average_plant_age;
-                density = Cell::estimate_tree_density(&new_trees);
+            // 1) overpopulation
+            while density > 1.0 && vegetation.get_number_of_plants() > 1 {
+                vegetation.kill_plants(1);
+                density = vegetation.estimate_density();
             }
+            let overpopulation_deaths = pre_death_count - vegetation.get_number_of_plants();
+            // println!("overpopulation_deaths {overpopulation_deaths}");
 
-            // stress
-            new_trees.number_of_plants -= (stress * Trees::STRESS_DEATH_CONSTANT) as u32;
+            // 2) stress (non-positive real number)
+            let stress_deaths = ((-stress) * T::STRESS_DEATH_CONSTANT) as u32;
+            // println!("stress_deaths {stress_deaths}");
+            vegetation.kill_plants(stress_deaths);
 
-            // old age
-            let average_age = new_trees.plant_age_sum / new_trees.number_of_plants as f32;
-            let num_dead_from_old_age = if average_age > Trees::LIFE_EXPECTANCY {
+            // 3) old age
+            let average_age =
+                vegetation.get_plant_age_sum() / vegetation.get_number_of_plants() as f32;
+            let old_age_deaths = if average_age > T::LIFE_EXPECTANCY {
                 f32::ceil(
-                    (1.0 - Trees::SENESCENCE_DEATH_CONSTANT) * new_trees.number_of_plants as f32,
+                    (1.0 - T::SENESCENCE_DEATH_CONSTANT) * vegetation.get_number_of_plants() as f32,
                 ) as u32
             } else {
                 0
             };
-            let average_plant_height =
-                new_trees.plant_height_sum / new_trees.number_of_plants as f32;
-            let average_plant_age = new_trees.plant_age_sum / new_trees.number_of_plants as f32;
-            new_trees.number_of_plants -= num_dead_from_old_age;
-            new_trees.plant_height_sum -= num_dead_from_old_age as f32 * average_plant_height;
-            new_trees.plant_age_sum -= num_dead_from_old_age as f32 * average_plant_age;
+            // println!("old_age_deaths {old_age_deaths}");
+            vegetation.kill_plants(old_age_deaths);
 
             // create temporary new plant struct to calculate biomass
-            let dead_trees = Trees {
-                number_of_plants: pre_death_count - new_trees.number_of_plants,
-                plant_height_sum: new_trees.plant_height_sum,
-                plant_age_sum: 0.0, // age doesn't matter
-            };
+            let total_dead = pre_death_count - vegetation.get_number_of_plants();
+            let dead_vegetation = T::init(
+                total_dead,
+                total_dead as f32 * pre_death_average_height,
+                0.0,
+            );
+            // println!("dead_vegetation {dead_vegetation:?}");
 
             // conversion to dead vegetation
-            new_dead_biomass += dead_trees.estimate_biomass();
-
-            // println!("new trees {new_trees:?}");
-
-            // handle mutability restrictions
-            if new_trees.number_of_plants > 0 {
-                new_trees_option = Some(new_trees);
-            }
+            new_dead_biomass += dead_vegetation.estimate_biomass();
+            // println!("new_dead_biomass {new_dead_biomass}");
         }
+        // println!("Vegetation end {vegetation:?}");
 
         let cell = &mut ecosystem[index];
-        cell.trees = new_trees_option;
+        vegetation.set_in_cell(cell);
+        // println!("Cell {cell:?}");
 
         // convert dead vegetation (from last year) to humus
         let new_humus = Self::convert_dead_vegetation_to_humus(cell.get_dead_vegetation_biomass());
         cell.remove_all_dead_vegetation();
+        assert!(new_humus >= 0.0);
         cell.add_humus(new_humus);
 
         // add new dead biomass to dead vegetation
+        assert!(
+            new_dead_biomass >= 0.0,
+            "new_dead_biomass {new_dead_biomass}"
+        );
         cell.add_dead_vegetation(new_dead_biomass);
 
         // does not propagate
@@ -301,6 +500,7 @@ impl Events {
             Self::compute_moisture_viability(ecosystem, index, vegetation, month);
         let illumination_viability =
             Self::compute_illumination_viability(ecosystem, index, vegetation, month);
+        // println!("type {}", std::any::type_name::<T>());
         // println!("temperature_viability {temperature_viability}");
         // println!("moisture_viability {moisture_viability}");
         // println!("illumination_viability {illumination_viability}");
@@ -380,7 +580,10 @@ impl Events {
         _: &T,
         month: usize,
     ) -> f32 {
-        let illumination = ecosystem.estimate_illumination(&index, month);
+        let cell = &ecosystem[index];
+        let modifier = T::get_illumination_coverage_constant(cell);
+        // println!("modifier {modifier}");
+        let illumination = ecosystem.estimate_illumination(&index, month) * modifier;
         // println!("illumination {illumination}");
         match illumination {
             illumination if illumination < T::ILLUMINATION_LIMIT_MIN => -1.0,
@@ -490,18 +693,14 @@ mod tests {
 
         let mut viabilities = vec![];
         for i in 0..12 {
-            let temperature_viability =
-                Events::compute_temperature_viability(&ecosystem, index, &trees, i);
-            let moisture_viability =
-                Events::compute_moisture_viability(&ecosystem, index, &trees, i);
-            let illumination_viability =
-                Events::compute_illumination_viability(&ecosystem, index, &trees, i);
+            // let temperature_viability =
+            //     Events::compute_temperature_viability(&ecosystem, index, &trees, i);
+            // let moisture_viability =
+            //     Events::compute_moisture_viability(&ecosystem, index, &trees, i);
+            // let illumination_viability =
+            //     Events::compute_illumination_viability(&ecosystem, index, &trees, i);
             let viability = Events::compute_viability(&ecosystem, index, &trees, i);
             viabilities.push(viability);
-            println!("VIABILITY FOR MONTH {i}: {viability}");
-            println!("temp : {temperature_viability}");
-            println!("moisture : {moisture_viability}");
-            println!("light : {illumination_viability}");
         }
 
         let (vigor, stress) = Events::compute_vigor_and_stress(&ecosystem, index, &trees);
@@ -568,9 +767,61 @@ mod tests {
         assert!(cell.trees.is_some());
         assert!(cell.get_humus_height() > 0.5);
         assert_eq!(cell.get_dead_vegetation_biomass(), 0.0);
+    }
 
-        Events::apply_vegetation_trees_event(&mut ecosystem, index);
-        Events::apply_vegetation_trees_event(&mut ecosystem, index);
-        Events::apply_vegetation_trees_event(&mut ecosystem, index);
+    #[test]
+    fn test_apply_vegetation_bushes_event() {
+        let mut ecosystem = Ecosystem::init();
+        let index = CellIndex::new(0, 0);
+
+        // case 1: simple growth
+        let bushes = Bushes {
+            number_of_plants: 1,
+            plant_height_sum: 2.0,
+            plant_age_sum: 10.0,
+        };
+        let cell = &mut ecosystem[index];
+        cell.bushes = Some(bushes);
+        // 50 cm of humus/soil
+        cell.remove_bedrock(0.5);
+        cell.add_humus(0.5);
+        cell.soil_moisture = 1.8E5;
+
+        Events::apply_vegetation_bushes_event(&mut ecosystem, index);
+
+        let cell = &mut ecosystem[index];
+        assert!(cell.bushes.is_some());
+        let new_bushes = cell.bushes.as_ref().unwrap();
+        assert!(new_bushes.number_of_plants >= 1);
+        assert!(new_bushes.plant_height_sum > 2.0);
+        assert!(new_bushes.plant_age_sum > 10.0);
+        assert_eq!(cell.get_humus_height(), 0.5);
+        assert_eq!(cell.get_dead_vegetation_biomass(), 0.0);
+
+        // case 2: overpopulation
+        let bushes = Bushes {
+            number_of_plants: 100,
+            plant_height_sum: 200.0,
+            plant_age_sum: 1000.0,
+        };
+        let cell = &mut ecosystem[index];
+        cell.bushes = Some(bushes);
+
+        Events::apply_vegetation_bushes_event(&mut ecosystem, index);
+        let cell = &mut ecosystem[index];
+        assert!(cell.bushes.is_some());
+        let new_bushes = cell.bushes.as_ref().unwrap();
+        assert!(new_bushes.number_of_plants < 100);
+        assert!(new_bushes.plant_height_sum < 200.0);
+        assert!(new_bushes.plant_age_sum < 1000.0);
+        assert_eq!(cell.get_humus_height(), 0.5);
+        assert!(cell.get_dead_vegetation_biomass() > 0.0);
+
+        // let another year pass so dead bushes get converted to humus
+        Events::apply_vegetation_bushes_event(&mut ecosystem, index);
+        let cell = &mut ecosystem[index];
+        assert!(cell.bushes.is_some());
+        assert!(cell.get_humus_height() > 0.5);
+        assert_eq!(cell.get_dead_vegetation_biomass(), 0.0);
     }
 }

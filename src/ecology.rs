@@ -54,7 +54,7 @@ impl IndexMut<CellIndex> for Ecosystem {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Cell {
     bedrock: Option<Bedrock>,
     rock: Option<Rock>,
@@ -82,22 +82,22 @@ pub(crate) enum CellLayer {
 }
 
 // use the methods to access and modify height of these layers
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Bedrock {
     height: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Rock {
     height: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Sand {
     height: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Humus {
     height: f32,
 }
@@ -110,19 +110,19 @@ pub(crate) struct Trees {
     pub(crate) plant_age_sum: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Bushes {
     pub(crate) number_of_plants: u32,
     pub(crate) plant_height_sum: f32,
     pub(crate) plant_age_sum: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct Grasses {
     pub(crate) coverage_density: f32,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub(crate) struct DeadVegetation {
     pub(crate) biomass: f32, // in kg
 }
@@ -387,14 +387,10 @@ impl Cell {
         let b = Vector3::new(i2.x as f32, i2.y as f32, c2.get_height());
         let c = Vector3::new(i3.x as f32, i3.y as f32, c3.get_height());
 
-        let ba = b - a;
-        let ca = c - a;
+        let ab = b - a;
+        let ac = c - a;
 
-        let mut normal = ba.cross(&ca).normalize();
-        if normal.z < 0.0 {
-            normal.z = -normal.z;
-        }
-        normal
+        ac.cross(&ab).normalize()
     }
 
     pub(crate) fn get_height(self: &Cell) -> f32 {
@@ -611,7 +607,7 @@ impl Cell {
     pub(crate) fn estimate_bushes_density(bushes: &Bushes) -> f32 {
         let n = bushes.number_of_plants;
         let biomass = bushes.estimate_biomass();
-        let average_biomass = biomass / n as f32;
+        let average_biomass = if n == 0 { 0.0 } else { biomass / n as f32 };
         let average_crown_area = Bushes::estimate_crown_area_from_biomass(average_biomass);
         let crown_area_sum = average_crown_area * n as f32;
         crown_area_sum / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH)
@@ -646,12 +642,12 @@ impl Trees {
         // based on allometric equation for red maples
         // source: https://academic.oup.com/forestry/article/87/1/129/602137#9934369
         // ln(biomass in kg) = -2.0470 + 2.3852 * ln(diameter in cm)
-        let average_height = if self.number_of_plants == 0 {
-            0.0
-        } else {
-            self.plant_height_sum / self.number_of_plants as f32
-        };
+        if self.number_of_plants == 0 {
+            return 0.0;
+        }
+        let average_height = self.plant_height_sum / self.number_of_plants as f32;
         let average_diameter = Trees::estimate_diameter_from_height(average_height);
+        assert!(average_diameter > 0.0);
         let average_biomass = f32::powf(
             std::f32::consts::E,
             -2.0470 + 2.3852 * f32::ln(average_diameter),
@@ -678,11 +674,24 @@ impl Trees {
 }
 
 impl Bushes {
+    pub(crate) fn init() -> Self {
+        Bushes {
+            number_of_plants: 0,
+            plant_height_sum: 0.0,
+            plant_age_sum: 0.0,
+        }
+    }
+
     pub(crate) fn estimate_biomass(&self) -> f32 {
         // based on allometric equation for rhododendron mariesii
         // source: https://link.springer.com/article/10.1007/s11056-023-09963-z
         // ln(biomass in kg) = -2.635 + 3.614 * ln(height in m)
+        if self.number_of_plants == 0 {
+            return 0.0;
+        }
         let average_height = self.plant_height_sum / self.number_of_plants as f32;
+        assert!(self.number_of_plants > 0, "{self:?}");
+        assert!(average_height > 0.0, "{self:?}");
         let average_biomass = f32::powf(
             std::f32::consts::E,
             -2.635 + 3.614 * f32::ln(average_height),
@@ -847,10 +856,25 @@ mod tests {
         bedrock.height = 101.0;
 
         let normal = ecosystem.get_normal(CellIndex::new(2, 2));
-        let expected = Vector3::new(f32::sqrt(0.5), 0.0, f32::sqrt(0.5));
-        assert!(approx_eq!(f32, expected[0], normal[0], epsilon = 0.001));
-        assert!(approx_eq!(f32, expected[1], normal[1], epsilon = 0.001));
-        assert!(approx_eq!(f32, expected[2], normal[2], epsilon = 0.001));
+        let expected = Vector3::new(-f32::sqrt(0.5), 0.0, f32::sqrt(0.5));
+        assert!(
+            approx_eq!(f32, expected[0], normal[0], epsilon = 0.001),
+            "Expected {}, actual {}",
+            expected[0],
+            normal[0]
+        );
+        assert!(
+            approx_eq!(f32, expected[1], normal[1], epsilon = 0.001),
+            "Expected {}, actual {}",
+            expected[1],
+            normal[1]
+        );
+        assert!(
+            approx_eq!(f32, expected[2], normal[2], epsilon = 0.001),
+            "Expected {}, actual {}",
+            expected[2],
+            normal[2]
+        );
     }
 
     // #[test]
@@ -934,7 +958,7 @@ mod tests {
 
     #[test]
     fn test_get_slope_at_point() {
-        let mut ecosystem = Ecosystem::init();
+        let ecosystem = Ecosystem::init();
         let slope = ecosystem.get_slope_at_point(CellIndex::new(2, 2));
         assert_eq!(slope, 0.0);
     }
@@ -1055,12 +1079,23 @@ mod tests {
             "Expected volume {expected}, actual volume {volume}"
         );
 
-        if let Some(trees) = &mut cell.bushes {
-            trees.number_of_plants = 5;
-            trees.plant_height_sum = 7.5;
+        if let Some(bushes) = &mut cell.bushes {
+            bushes.number_of_plants = 5;
+            bushes.plant_height_sum = 7.5;
         }
         let volume = cell.estimate_bush_biomass();
         let expected = 1.5523;
+        assert!(
+            approx_eq!(f32, volume, expected, epsilon = 0.001),
+            "Expected volume {expected}, actual volume {volume}"
+        );
+
+        if let Some(bushes) = &mut cell.bushes {
+            bushes.number_of_plants = 0;
+            bushes.plant_height_sum = 0.0;
+        }
+        let volume = cell.estimate_bush_biomass();
+        let expected = 0.0;
         assert!(
             approx_eq!(f32, volume, expected, epsilon = 0.001),
             "Expected volume {expected}, actual volume {volume}"
