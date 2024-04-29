@@ -2,7 +2,8 @@
 // based on ~10 lightning strikes per km per year
 // https://www.sciencedirect.com/science/article/pii/S0169555X13003929
 const DESIRED_MAX_STRIKES: f32 = 20.0; // strikes per squar kilometer
-const MAX_LIGHTNING_PROBABILITY: f32 = constants::AREA * DESIRED_MAX_STRIKES / constants::NUM_CELLS as f32;
+const MAX_LIGHTNING_PROBABILITY: f32 =
+    constants::AREA * DESIRED_MAX_STRIKES / constants::NUM_CELLS as f32;
 const LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME: f32 = 4.0; // m^3
 
 use super::Events;
@@ -46,8 +47,7 @@ impl Events {
             // simplifying assumption 2: distribute volume evenly to 8 neighbors and cell (instead of being based on slope and relative elevation)
             let neighbors = Cell::get_neighbors(&index);
             let num_affected_cells = neighbors.len() + 1;
-            let volume_per_cell =
-                LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME / num_affected_cells as f32;
+            let volume_per_cell = LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME / num_affected_cells as f32;
             let height_per_cell =
                 volume_per_cell / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
 
@@ -131,8 +131,7 @@ mod tests {
         // assert neighbors and self have increase in rocks and sand
         let neighbors = Cell::get_neighbors(&index);
         let num_neighbors = neighbors.len() + 1;
-        let volume_per_cell =
-            LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME / (num_neighbors + 1) as f32;
+        let volume_per_cell = LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME / (num_neighbors + 1) as f32;
         let height_per_cell =
             volume_per_cell / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
 

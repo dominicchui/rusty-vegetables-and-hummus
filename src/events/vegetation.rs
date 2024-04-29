@@ -643,7 +643,7 @@ impl Events {
         let cell = &ecosystem[index];
         let modifier = T::get_illumination_coverage_constant(cell);
         // println!("modifier {modifier}");
-        let illumination = ecosystem.estimate_illumination(&index, month) * modifier;
+        let illumination = ecosystem.estimate_illumination_simple(&index, month) * modifier;
         // println!("illumination {illumination}");
         match illumination {
             illumination if illumination < T::ILLUMINATION_LIMIT_MIN => -1.0,

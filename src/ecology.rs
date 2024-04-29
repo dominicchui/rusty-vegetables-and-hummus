@@ -1,4 +1,3 @@
-use itertools::Itertools;
 use nalgebra::Vector3;
 
 use crate::constants;
@@ -6,6 +5,9 @@ use std::{
     fmt,
     ops::{Index, IndexMut},
 };
+
+mod illumination;
+mod initializer;
 
 pub struct Ecosystem {
     // Array of structs
@@ -269,13 +271,6 @@ impl Ecosystem {
         } else {
             0.0
         }
-    }
-
-    // estimates the illumination of the cell based on traced rays from the sun moving across the sky
-    // returns average daily hours of direct sunlight
-    pub(crate) fn estimate_illumination(&self, index: &CellIndex, month: usize) -> f32 {
-        // todo placeholder estimate
-        constants::AVERAGE_SUNLIGHT_HOURS[month]
     }
 }
 

@@ -7,11 +7,15 @@ pub(crate) const AREA_SIDE_LENGTH: usize = 100; // in cells
 pub(crate) const CELL_SIDE_LENGTH: f32 = 10.0; // in meters
 pub(crate) const DEFAULT_BEDROCK_HEIGHT: f32 = 100.0; // in meters
 
+// Providence RI
+pub(crate) const LATITUDE: f32 = 41.8;
+pub(crate) const LONGITUDE: f32 = -71.4;
+pub(crate) const TIMEZONE: i32 = -5;
+
 // https://en.wikipedia.org/wiki/Angle_of_repose#Of_various_materials
 pub(crate) const CRITICAL_ANGLE_ROCK: f32 = 40.0;
 pub(crate) const CRITICAL_ANGLE_SAND: f32 = 34.0;
 pub(crate) const CRITICAL_ANGLE_HUMUS: f32 = 40.0;
-
 
 pub(crate) const SIDE_LENGTH: f32 = CELL_SIDE_LENGTH * AREA_SIDE_LENGTH as f32 / 1000.0; // in km
 pub(crate) const AREA: f32 = SIDE_LENGTH * SIDE_LENGTH; // in km^2

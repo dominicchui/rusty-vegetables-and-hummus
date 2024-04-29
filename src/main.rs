@@ -11,7 +11,6 @@ mod camera;
 mod constants;
 mod ecology; // apparently naming this "ecosystem" breaks rust analyzer :(
 mod events;
-mod initializer;
 mod render;
 mod render_gl;
 mod simulation;
