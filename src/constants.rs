@@ -30,17 +30,11 @@ pub(crate) const LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME: f32 = 4.0; //4.0; // m^3
 pub(crate) const GRASS_DENSITY: f32 = 1.0; // kg/m^3
 
 // constants used for simple renderer
-pub(crate) const BEDROCK_COLOR: Vector3<f32> = Vector3::new(0.2, 0.2, 0.2);
-
-pub(crate) const ROCK_COLOR: Vector3<f32> = Vector3::new(0.3, 0.3, 0.3);
+pub(crate) const BEDROCK_COLOR: Vector3<f32> = Vector3::new(0.3, 0.3, 0.3);
+pub(crate) const ROCK_COLOR: Vector3<f32> = Vector3::new(0.4, 0.4, 0.4);
 pub(crate) const SAND_COLOR: Vector3<f32> = Vector3::new(0.76078, 0.69804, 0.50196);
 pub(crate) const HUMUS_COLOR: Vector3<f32> = Vector3::new(0.46274, 0.33333, 0.16863);
-
-// pub(crate) const ROCK_COLOR: Vector3<f32> = Vector3::new(1.0, 0.0, 0.0);
-// pub(crate) const SAND_COLOR: Vector3<f32> = Vector3::new(0.0, 1.0, 0.0);
-// pub(crate) const HUMUS_COLOR: Vector3<f32> = Vector3::new(0.0, 0.0, 1.0);
-
-pub(crate) const TREES_COLOR: Vector3<f32> = Vector3::new(0.2, 0.2, 0.2);
+pub(crate) const TREES_COLOR: Vector3<f32> = Vector3::new(0.22745, 0.30980, 0.24706);
 pub(crate) const BUSHES_COLOR: Vector3<f32> = Vector3::new(0.2, 0.2, 0.2);
 pub(crate) const GRASS_COLOR: Vector3<f32> = Vector3::new(0.2, 0.2, 0.2);
 pub(crate) const DEAD_COLOR: Vector3<f32> = Vector3::new(0.25098, 0.16078, 0.01961);

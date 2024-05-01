@@ -179,10 +179,16 @@ impl Ecosystem {
             plant_age_sum: 10.0,
         };
 
+        let bushes = Bushes {
+            number_of_plants: 15,
+            plant_height_sum: 100.0,
+            plant_age_sum: 10.0,
+        };
+
         let center = &mut ecosystem[CellIndex::new(c_i, c_i)];
         let bedrock = center.bedrock.as_mut().unwrap();
         bedrock.height = 103.0;
-        // center.trees = Some(trees.clone());
+        center.bushes = Some(bushes.clone());
 
         let up = &mut ecosystem[CellIndex::new(c_i, c_i - 1)];
         let bedrock = up.bedrock.as_mut().unwrap();
@@ -654,6 +660,22 @@ impl Cell {
     pub(crate) fn get_height_of_rock(&self) -> f32 {
         if let Some(rock) = &self.rock {
             rock.height
+        } else {
+            0.0
+        }
+    }
+
+    pub(crate) fn get_height_of_trees(&self) -> f32 {
+        if let Some(tree) = &self.trees {
+            tree.plant_height_sum / (tree.number_of_plants as f32)
+        } else {
+            0.0
+        }
+    }
+
+    pub(crate) fn get_dead_vegetation(&self) -> f32 {
+        if let Some(dead) = &self.dead_vegetation {
+            dead.biomass / 50.0
         } else {
             0.0
         }
