@@ -1,3 +1,5 @@
+use nalgebra::Vector3;
+
 pub(crate) const SCREEN_WIDTH: usize = 1400;
 pub(crate) const SCREEN_HEIGHT: usize = 1000;
 pub(crate) const SPEED: f32 = AREA_SIDE_LENGTH as f32;
@@ -25,6 +27,16 @@ pub(crate) const NUM_CELLS: usize = AREA_SIDE_LENGTH * AREA_SIDE_LENGTH;
 // https://www.sciencedirect.com/science/article/pii/S2351989421002973
 // density of highland grasses
 pub(crate) const GRASS_DENSITY: f32 = 1.0; // kg/m^3
+
+// constants used for simple renderer
+pub(crate) const BEDROCK_COLOR: Vector3<f32> = Vector3::new(0.3, 0.3, 0.3);
+pub(crate) const ROCK_COLOR: Vector3<f32> = Vector3::new(0.4, 0.4, 0.4);
+pub(crate) const SAND_COLOR: Vector3<f32> = Vector3::new(0.76078, 0.69804, 0.50196);
+pub(crate) const HUMUS_COLOR: Vector3<f32> = Vector3::new(0.46274, 0.33333, 0.16863);
+pub(crate) const TREES_COLOR: Vector3<f32> = Vector3::new(0.22745, 0.30980, 0.24706);
+pub(crate) const BUSHES_COLOR: Vector3<f32> = Vector3::new(0.2, 0.2, 0.2);
+pub(crate) const GRASS_COLOR: Vector3<f32> = Vector3::new(0.2, 0.2, 0.2);
+pub(crate) const DEAD_COLOR: Vector3<f32> = Vector3::new(0.25098, 0.16078, 0.01961);
 
 //pub(crate) const AVERAGE_TEMPERATURE: f32 = 15.0; // in celsius
 // https://en.climate-data.org/north-america/united-states-of-america/rhode-island/providence-1723/

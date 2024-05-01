@@ -43,8 +43,7 @@ fn main() {
         .unwrap();
 
     let _gl_context = window.gl_create_context().unwrap();
-    let _gl =
-        gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
+    gl::load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
 
     // set up shared state for window
     unsafe {

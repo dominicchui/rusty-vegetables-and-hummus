@@ -5,7 +5,7 @@ use std::ffi::CString;
 use crate::{
     camera::Camera,
     constants,
-    ecology::{Cell, CellIndex, Ecosystem},
+    ecology::{Bushes, Cell, CellIndex, Ecosystem, Trees},
 };
 
 pub(crate) struct EcosystemRenderable {
@@ -46,17 +46,7 @@ impl EcosystemRenderable {
                 let height = cell.get_height();
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(ecosystem.get_normal(index));
-                // todo remove
-                // make cell more green based on tree density
-                // 0 density => g = 118
-                // 1 density => g = 240
-                let green = if let Some(vegetation) = &cell.trees {
-                    let density = Cell::estimate_tree_density(vegetation); //vegetation.coverage_density;
-                    f32::min(1.0, (118.0 + 122.0 * density) / 255.0)
-                } else {
-                    0.46
-                };
-                colors.push(Vector3::new(0.61, green, 0.33));
+                colors.push(ecosystem.get_color(index));
             }
         }
         // simple tessellation of square grid
@@ -74,6 +64,18 @@ impl EcosystemRenderable {
                 lines.push(Vector2::new(index, bottom));
                 lines.push(Vector2::new(right, bottom_right));
                 lines.push(Vector2::new(bottom, bottom_right));
+            }
+        }
+
+        // add trees and bushes
+        for i in 0..constants::AREA_SIDE_LENGTH {
+            for j in 0..constants::AREA_SIDE_LENGTH {
+                let index = CellIndex::new(i, j);
+                let cell = &ecosystem[index];
+                let center: Vector3<f32> = Vector3::new(i as f32, j as f32, cell.get_height());
+                Self::add_tree(center, cell.get_height_of_trees() / 10.0, &mut verts, &mut normals, &mut colors, &mut faces);
+                Self::add_dead(center, cell.get_dead_vegetation() / 10.0, &mut verts, &mut normals, &mut colors, &mut faces);
+                // Self::add_bush(center, cell.estimate_bush_biomass(), &mut verts, &mut normals, &mut colors, &mut faces);
             }
         }
 
@@ -240,11 +242,137 @@ impl EcosystemRenderable {
         ecosystem_render
     }
 
+    fn add_tree(
+        center: Vector3<f32>,
+        height: f32,
+        verts: &mut Vec<Vector3<f32>>,
+        normals: &mut Vec<Vector3<f32>>,
+        colors: &mut Vec<Vector3<f32>>,
+        faces: &mut Vec<Vector3<i32>>
+    ) {
+        let diameter = Trees::estimate_diameter_from_height(height);
+        let resolution: i32 = 16; // Number of sides in the cylinder
+
+        // Calculate vertices and normals for the cylinder
+        let mut cylinder_verts: Vec<Vector3<f32>> = vec![];
+        let mut cylinder_normals: Vec<Vector3<f32>> = Vec::new();
+        for i in 0..resolution {
+            let phi: f32 = 4.0 * std::f32::consts::PI * (i as f32) / (resolution as f32);
+            let x: f32 = center.x + diameter * 0.5 * phi.cos();
+            let y: f32 = center.y + diameter * 0.5 * phi.sin();
+            let z: f32 = center.z;
+            cylinder_verts.push(Vector3::new(x, y, z));
+            cylinder_verts.push(Vector3::new(x, y, z + height));
+            cylinder_normals.push(Vector3::new(-phi.cos(), 0.0,  -phi.sin()));
+            cylinder_normals.push(Vector3::new(-phi.cos(), 0.0,  -phi.sin()));
+        }
+
+        // Add vertices, normals, and colors to the existing vectors
+        let start_index: i32 = verts.len() as i32;
+        verts.extend_from_slice(&cylinder_verts);
+        normals.extend_from_slice(&cylinder_normals);
+        colors.extend_from_slice(&vec![constants::TREES_COLOR; (resolution * 2) as usize]);
+
+        // Add faces to connect the vertices
+        for i in 0..resolution {
+            let a = start_index + i;
+            let b = start_index + (i + 1) % resolution;
+            let c = start_index + (i + 2) % resolution;
+            let d = start_index + (i + 3) % resolution;
+            faces.push(Vector3::new(a, b, c));
+            faces.push(Vector3::new(b, c, d));
+        }
+    }
+
+    fn add_dead(
+        center: Vector3<f32>,
+        height: f32,
+        verts: &mut Vec<Vector3<f32>>,
+        normals: &mut Vec<Vector3<f32>>,
+        colors: &mut Vec<Vector3<f32>>,
+        faces: &mut Vec<Vector3<i32>>
+    ) {
+        let diameter = Trees::estimate_diameter_from_height(height);
+        let resolution: i32 = 16; // Number of sides in the cylinder
+
+        // Calculate vertices and normals for the cylinder
+        let mut cylinder_verts: Vec<Vector3<f32>> = vec![];
+        let mut cylinder_normals: Vec<Vector3<f32>> = Vec::new();
+        for i in 0..resolution {
+            let phi: f32 = 4.0 * std::f32::consts::PI * (i as f32) / (resolution as f32);
+            let x = center.x - 0.5;
+            let y = center.y + diameter * 0.5 * phi.cos();
+            let z = center.z + diameter * 0.5 * (1.0 + phi.sin());
+            cylinder_verts.push(Vector3::new(x, y, z));
+            cylinder_verts.push(Vector3::new(x + height, y, z));
+            cylinder_normals.push(Vector3::new(phi.cos(), 0.0, phi.sin()));
+            cylinder_normals.push(Vector3::new(phi.cos(), 0.0, phi.sin()));
+        }
+
+        // Add vertices, normals, and colors to the existing vectors
+        let start_index: i32 = verts.len() as i32;
+        verts.extend_from_slice(&cylinder_verts);
+        normals.extend_from_slice(&cylinder_normals);
+        colors.extend_from_slice(&vec![constants::DEAD_COLOR; (resolution * 2) as usize]);
+
+        // Add faces to connect the vertices
+        for i in 0..resolution {
+            let a = start_index + i;
+            let b = start_index + (i + 1) % resolution;
+            let c = start_index + (i + 2) % resolution;
+            let d = start_index + (i + 3) % resolution;
+            faces.push(Vector3::new(a, b, c));
+            faces.push(Vector3::new(b, c, d));
+        }
+    }
+
+    fn add_bush(
+        center: Vector3<f32>,
+        biomass: f32,
+        verts: &mut Vec<Vector3<f32>>,
+        normals: &mut Vec<Vector3<f32>>,
+        colors: &mut Vec<Vector3<f32>>,
+        faces: &mut Vec<Vector3<i32>>
+    ) {
+        let diameter = Bushes::estimate_crown_area_from_biomass(biomass);
+        let resolution: i32 = 16;
+
+        let mut hsphere_verts: Vec<Vector3<f32>> = vec![];
+        let mut hsphere_normals: Vec<Vector3<f32>> = Vec::new();
+        for i in 0..resolution {
+            let phi: f32 = 4.0 * std::f32::consts::PI * (i as f32) / (resolution as f32);
+            for j in 0..resolution {
+                let theta = 2.0 * std::f32::consts::PI * (j as f32) / (resolution as f32);
+                let x = center.x + diameter * 0.5 * phi.sin() * theta.cos();
+                let y = center.y + diameter * 0.5 * phi.sin() * theta.sin();
+                let z = center.z + diameter * 0.5 * phi.cos();
+                hsphere_verts.push(Vector3::new(x, y, z));
+                hsphere_normals.push(Vector3::new(phi.sin() * theta.cos(), phi.sin() * theta.sin(), phi.cos()));
+            }
+        }
+
+        // Add vertices, normals, and colors to the existing vectors
+        let start_index: i32 = verts.len() as i32;
+        verts.extend_from_slice(&hsphere_verts);
+        normals.extend_from_slice(&hsphere_normals);
+        colors.extend_from_slice(&vec![constants::BUSHES_COLOR; hsphere_verts.len()]);
+
+        // Add faces to connect the vertices
+        for i in 0..resolution {
+            let a = start_index + i;
+            let b = start_index + (i + 1) % resolution;
+            let c = start_index + (i + 2) % resolution;
+            let d = start_index + (i + 3) % resolution;
+            faces.push(Vector3::new(a, b, c));
+            faces.push(Vector3::new(b, c, d));
+        }
+    }
+
     fn populate_vbo(
         m_vbo: GLuint,
-        verts: &Vec<Vector3<f32>>,
-        normals: &Vec<Vector3<f32>>,
-        colors: &Vec<Vector3<f32>>,
+        verts: &[Vector3<f32>],
+        normals: &[Vector3<f32>],
+        colors: &[Vector3<f32>],
     ) {
         unsafe {
             gl::BindBuffer(gl::ARRAY_BUFFER, m_vbo);
@@ -289,6 +417,7 @@ impl EcosystemRenderable {
         let mut verts: Vec<Vector3<f32>> = vec![];
         let mut normals: Vec<Vector3<f32>> = vec![];
         let mut colors: Vec<Vector3<f32>> = vec![];
+        let mut faces: Vec<Vector3<i32>> = vec![];
         for i in 0..constants::AREA_SIDE_LENGTH {
             for j in 0..constants::AREA_SIDE_LENGTH {
                 let index = CellIndex::new(i, j);
@@ -297,16 +426,22 @@ impl EcosystemRenderable {
                 let height = cell.get_height();
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(self.ecosystem.get_normal(index));
-                // todo remove
-                let green = if let Some(vegetation) = &cell.trees {
-                    let density = Cell::estimate_tree_density(vegetation); //vegetation.coverage_density;
-                    f32::min(1.0, (118.0 + 122.0 * density) / 255.0)
-                } else {
-                    0.46
-                };
-                colors.push(Vector3::new(0.61, green, 0.33));
+                colors.push(self.ecosystem.get_color(index));
             }
         }
+
+        // add trees and bushes
+        for i in 0..constants::AREA_SIDE_LENGTH {
+            for j in 0..constants::AREA_SIDE_LENGTH {
+                let index = CellIndex::new(i, j);
+                let cell = &self.ecosystem[index];
+                let center: Vector3<f32> = Vector3::new(i as f32, j as f32, cell.get_height());
+                Self::add_tree(center, cell.get_height_of_trees() / 10.0, &mut verts, &mut normals, &mut colors, &mut faces);
+                Self::add_dead(center, cell.get_dead_vegetation() / 10.0, &mut verts, &mut normals, &mut colors, &mut faces);
+                // Self::add_bush(center, cell.estimate_bush_biomass(), &mut verts, &mut normals, &mut colors, &mut faces);
+            }
+        }
+
         EcosystemRenderable::populate_vbo(self.m_vbo, &verts, &normals, &colors);
     }
 

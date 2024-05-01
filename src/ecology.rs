@@ -154,6 +154,29 @@ impl Ecosystem {
         }
     }
 
+    pub fn get_color(&self, index: CellIndex) -> Vector3<f32> {
+        // rock (gray), sand (pale yellow), humus (light brown), trees (dark green), bushes (medium green), grass (light green), dead (dark brown)
+        let mut color: Vector3<f32>;
+        let soil_height: f32;
+
+        (soil_height, color) = self[index].get_soil_color();
+        if soil_height == 0.0 {
+            color = constants::BEDROCK_COLOR;
+        }
+
+        if let Some(grass) = &self[index].grasses {
+            let alpha = grass.coverage_density;
+            color = color * (1.0 - alpha) + constants::GRASS_COLOR * alpha;
+        }
+
+        // let mut top_biomass = self[index].estimate_bush_biomass() + self[index].estimate_tree_biomass();
+        // if let Some(dead) = &self[index].dead_vegetation {
+        //     top_biomass += dead.biomass;
+        // }
+
+        color
+    }
+
     pub(crate) fn get_normal(&self, index: CellIndex) -> Vector3<f32> {
         // normal of a vertex is the normalized sum of the normals of the adjacent faces
         // cells are vertices and the triangles formed between the cell and its 4 adjacent cells are faces
@@ -407,6 +430,31 @@ impl Cell {
         height
     }
 
+    pub(crate) fn get_soil_color(self: &Cell) -> (f32, Vector3<f32>) {
+        let mut height = 0.0;
+        let mut rock_amt = 0.0;
+        let mut sand_amt = 0.0;
+        let mut humus_amt = 0.0;
+        if let Some(rock) = &self.rock {
+            height += rock.height;
+            rock_amt += rock.height;
+        }
+        if let Some(sand) = &self.sand {
+            height += sand.height;
+            sand_amt += sand.height;
+        }
+        if let Some(humus) = &self.humus {
+            height += humus.height;
+            humus_amt += humus.height;
+        }
+
+        rock_amt /= height;
+        sand_amt /= height;
+        humus_amt /= height;
+
+        (height, rock_amt * constants::ROCK_COLOR + sand_amt * constants::SAND_COLOR + humus_amt * constants::HUMUS_COLOR)
+    }
+    
     pub(crate) fn get_monthly_temperature(self: &Cell, month: usize) -> f32 {
         // modulate temperature with height
         let height = self.get_height();
@@ -532,6 +580,14 @@ impl Cell {
     pub(crate) fn get_rock_height(&self) -> f32 {
         if let Some(rock) = &self.rock {
             rock.height
+        } else {
+            0.0
+        }
+    }
+
+    pub(crate) fn get_height_of_trees(&self) -> f32 {
+        if let Some(tree) = &self.trees {
+            tree.plant_height_sum / (tree.number_of_plants as f32)
         } else {
             0.0
         }
@@ -734,7 +790,7 @@ mod tests {
     use super::{Bedrock, CellIndex, Ecosystem, Humus, Rock, Sand};
     use crate::{
         constants,
-        ecology::{Bushes, Cell, Trees},
+        ecology::{self, Bushes, Cell, Trees},
     };
 
     #[test]
@@ -1150,6 +1206,39 @@ mod tests {
         );
     }
 
+    #[test]
+    fn test_get_color() {
+        let mut cell = Cell {
+            soil_moisture: 0.0,
+            sunlight: 0.0,
+            temperature: 0.0,
+            bedrock: None,
+            rock: Some(Rock{height:1.0}),
+            sand: None,
+            humus: None,
+            trees: None,
+            bushes: None,
+            grasses: None,
+            dead_vegetation: None,
+        };
+        let mut eco = Ecosystem { cells : vec![vec![cell.clone()]] };
+        let actual: Vector3<f32> = eco.get_color(CellIndex {x:0, y:0} );
+        let expected: Vector3<f32> = constants::ROCK_COLOR;
+        assert!(
+            actual == expected,
+            "Expected color {expected}, actual color {actual}"
+        );
+
+        cell.sand = Some(Sand{height:1.0});
+        eco[CellIndex{x:0,y:0}] = cell;
+        let actual: Vector3<f32> = eco.get_color(CellIndex{x:0,y:0});
+        let expected: Vector3<f32> = (constants::SAND_COLOR + constants::ROCK_COLOR) / 2.0;
+        assert!(
+            actual == expected,
+            "Expected color {expected}, actual color {actual}"
+        );
+    }
+  
     #[test]
     fn test_get_monthly_soil_moisture() {
         let mut ecosystem = Ecosystem::init();
