@@ -1,4 +1,5 @@
 use nalgebra::{Vector3, Vector4};
+use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::constants;
 
@@ -189,7 +190,7 @@ impl Ecosystem {
         constants::AVERAGE_SUNLIGHT_HOURS[month]
     }
 
-    pub(crate) fn estimate_illumination_ray_traced(&self, index: &CellIndex, month: usize) -> f32 {
+    pub(crate) fn get_precomputed_illumination_ray_traced(&self, index: &CellIndex, month: usize) -> f32 {
         let cell = &self[*index];
         cell.hours_of_sunlight[month]
     }
@@ -197,16 +198,31 @@ impl Ecosystem {
     // recomputes ray traced sunlight for all cells
     pub(crate) fn recompute_sunlight(&mut self) {
         // two of the edges don't have ray traced computation due to lacking the triangles required
+        let mut indices = vec![];
         for i in 0..constants::AREA_SIDE_LENGTH - 1 {
             for j in 0..constants::AREA_SIDE_LENGTH - 1 {
                 let index = CellIndex::new(i, j);
-                self.compute_hours_of_sunlight_for_cell(&index);
+                indices.push(index);
+            }
+        }
+        // parallelize computation
+        let cell_hours: Vec<[f32;12]> = indices.into_par_iter()
+            .map(|index| {
+                self.compute_hours_of_sunlight_for_cell(&index)
+            })
+            .collect();
+        for i in 0..constants::AREA_SIDE_LENGTH - 1 {
+            for j in 0..constants::AREA_SIDE_LENGTH - 1 {
+                let index = i + j * (constants::AREA_SIDE_LENGTH - 1);
+                let hours = cell_hours[index];
+                let cell = &mut self[CellIndex::new(i,j)];
+                cell.hours_of_sunlight = hours;
             }
         }
     }
 
     // recomputes the hours of sunlight a cell receives based on ray tracing the sun
-    pub(crate) fn compute_hours_of_sunlight_for_cell(&mut self, index: &CellIndex) {
+    pub(crate) fn compute_hours_of_sunlight_for_cell(&self, index: &CellIndex) -> [f32; 12] {
         let mut monthly_hours = [0.0; 12];
         for (i, entry) in monthly_hours.iter_mut().enumerate() {
             let hours = self.ray_trace_illumination(index, i);
@@ -214,8 +230,9 @@ impl Ecosystem {
             *entry = hours;
         }
         // println!("{index} monthly_hours {monthly_hours:?}");
-        let cell = &mut self[*index];
-        cell.hours_of_sunlight = monthly_hours;
+        monthly_hours
+        // let cell = &mut self[*index];
+        // cell.hours_of_sunlight = monthly_hours;
     }
 
     // estimate illumination of given cell using rays traced from sun's position across the sky over the year
@@ -276,7 +293,6 @@ impl Ecosystem {
 // https://en.wikipedia.org/wiki/Equation_of_time
 fn compute_equation_of_time(month: usize) -> f32 {
     let b = ((360.0 / 365.0) * (days_since_start_of_year(month) - 81) as f32).to_radians();
-
     9.87 * f32::sin(2.0 * b) - 7.53 * f32::cos(b) - 1.5 * f32::sin(b)
 }
 
