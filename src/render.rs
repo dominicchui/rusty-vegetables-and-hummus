@@ -26,7 +26,8 @@ pub(crate) struct EcosystemRenderable {
 
 impl EcosystemRenderable {
     pub fn init() -> Self {
-        let ecosystem = Ecosystem::init_standard();
+        let mut ecosystem = Ecosystem::init_standard();
+        ecosystem.recompute_sunlight();
 
         // initialize based on the cell grid of the ecosystem
         let num_cells = constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH;
@@ -95,9 +96,9 @@ impl EcosystemRenderable {
         // Initialize camera in reasonable location
         let near_plane = 0.001;
         let far_plane = 10000.0;
-        let middle = constants::AREA_SIDE_LENGTH as f32;
+        let middle = constants::AREA_SIDE_LENGTH as f32 / 2.0;
         let center = Vector3::new(middle, middle, constants::DEFAULT_BEDROCK_HEIGHT);
-        let eye: Vector3<f32> = center + Vector3::new(0.0, 15.0, 15.0);
+        let eye: Vector3<f32> = center + Vector3::new (0.0, 15.0, 15.0);
             // + Vector3::new(
             //     0.0,
             //     2.0 * constants::AREA_SIDE_LENGTH as f32,

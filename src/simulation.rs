@@ -21,7 +21,7 @@ impl Simulation {
 
     pub fn take_time_step(&mut self) {
         // update sunlight computations
-        self.ecosystem.ecosystem.recompute_sunlight();
+        // self.ecosystem.ecosystem.recompute_sunlight();
 
         // iterate over all cells
         let num_cells = constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH;
