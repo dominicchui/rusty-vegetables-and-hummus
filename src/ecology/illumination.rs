@@ -190,7 +190,11 @@ impl Ecosystem {
         constants::AVERAGE_SUNLIGHT_HOURS[month]
     }
 
-    pub(crate) fn get_precomputed_illumination_ray_traced(&self, index: &CellIndex, month: usize) -> f32 {
+    pub(crate) fn get_precomputed_illumination_ray_traced(
+        &self,
+        index: &CellIndex,
+        month: usize,
+    ) -> f32 {
         let cell = &self[*index];
         cell.hours_of_sunlight[month]
     }
@@ -206,16 +210,15 @@ impl Ecosystem {
             }
         }
         // parallelize computation
-        let cell_hours: Vec<[f32;12]> = indices.into_par_iter()
-            .map(|index| {
-                self.compute_hours_of_sunlight_for_cell(&index)
-            })
+        let cell_hours: Vec<[f32; 12]> = indices
+            .into_par_iter()
+            .map(|index| self.compute_hours_of_sunlight_for_cell(&index))
             .collect();
         for i in 0..constants::AREA_SIDE_LENGTH - 1 {
             for j in 0..constants::AREA_SIDE_LENGTH - 1 {
                 let index = i + j * (constants::AREA_SIDE_LENGTH - 1);
                 let hours = cell_hours[index];
-                let cell = &mut self[CellIndex::new(i,j)];
+                let cell = &mut self[CellIndex::new(i, j)];
                 cell.hours_of_sunlight = hours;
             }
         }

@@ -406,7 +406,7 @@ impl Cell {
         }
         height
     }
-    
+
     pub(crate) fn get_monthly_temperature(self: &Cell, month: usize) -> f32 {
         // modulate temperature with height
         let height = self.get_height();
@@ -495,6 +495,15 @@ impl Cell {
             humus.height -= height;
             if humus.height <= 0.0 {
                 self.humus = None;
+            }
+        }
+    }
+
+    pub(crate) fn remove_dead_vegetation(&mut self, biomass: f32) {
+        if let Some(dead_vegetation) = &mut self.dead_vegetation {
+            dead_vegetation.biomass -= biomass;
+            if dead_vegetation.biomass <= 0.0 {
+                self.dead_vegetation = None;
             }
         }
     }
@@ -1157,7 +1166,7 @@ mod tests {
             "Expected {expected}, actual {density}"
         );
     }
-  
+
     #[test]
     fn test_get_monthly_soil_moisture() {
         let mut ecosystem = Ecosystem::init();

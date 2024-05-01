@@ -8,7 +8,8 @@ use crate::{
 };
 
 // % of dead vegetation that is converted to humus while the rest rots away (disappears)
-const DEAD_VEGETATION_TO_HUMUS_RATE: f32 = 0.3;
+const DEAD_VEGETATION_TO_HUMUS_RATE: f32 = 0.15;
+const DEAD_VEGETATION_TO_CO2_RATE: f32 = 0.15;
 // https://link.springer.com/referenceworkentry/10.1007/978-1-4020-3995-9_406
 const HUMUS_DENSITY: f32 = 1500.0; // in kg per cubic meter
 
@@ -489,9 +490,15 @@ impl Events {
         vegetation.set_in_cell(cell);
         // println!("Cell {cell:?}");
 
+        // let some dead vegetation rot away into CO2
+        let disappeared_dead_biomass =
+            cell.get_dead_vegetation_biomass() * DEAD_VEGETATION_TO_CO2_RATE;
+
         // convert dead vegetation (from last year) to humus
         let new_humus = Self::convert_dead_vegetation_to_humus(cell.get_dead_vegetation_biomass());
-        cell.remove_all_dead_vegetation();
+
+        cell.remove_dead_vegetation(disappeared_dead_biomass);
+        // cell.remove_all_dead_vegetation();
         assert!(new_humus >= 0.0, "{new_humus}");
         cell.add_humus(new_humus);
 
@@ -643,7 +650,8 @@ impl Events {
         let cell = &ecosystem[index];
         let modifier = T::get_illumination_coverage_constant(cell);
         // println!("modifier {modifier}");
-        let illumination = ecosystem.get_precomputed_illumination_ray_traced(&index, month) * modifier;
+        let illumination =
+            ecosystem.get_precomputed_illumination_ray_traced(&index, month) * modifier;
         match illumination {
             illumination if illumination < T::ILLUMINATION_LIMIT_MIN => -1.0,
             illumination if illumination < T::ILLUMINATION_IDEAL_MIN => {
@@ -817,6 +825,7 @@ mod tests {
         assert!(new_trees.plant_height_sum < 100.0);
         assert!(new_trees.plant_age_sum < 100.0);
         assert_eq!(cell.get_humus_height(), 0.5);
+        let dead_biomass = cell.get_dead_vegetation_biomass();
         assert!(cell.get_dead_vegetation_biomass() > 0.0);
 
         // let another year pass so dead trees get converted to humus
@@ -824,7 +833,9 @@ mod tests {
         let cell = &mut ecosystem[index];
         assert!(cell.trees.is_some());
         assert!(cell.get_humus_height() > 0.5);
-        assert_eq!(cell.get_dead_vegetation_biomass(), 0.0);
+        // less dead vegetation but not 0
+        assert!(cell.get_dead_vegetation_biomass() > 0.0);
+        assert!(cell.get_dead_vegetation_biomass() < dead_biomass);
     }
 
     #[test]
@@ -873,6 +884,7 @@ mod tests {
         assert!(new_bushes.plant_height_sum < 200.0);
         assert!(new_bushes.plant_age_sum < 1000.0);
         assert_eq!(cell.get_humus_height(), 0.5);
+        let dead_biomass = cell.get_dead_vegetation_biomass();
         assert!(cell.get_dead_vegetation_biomass() > 0.0);
 
         // let another year pass so dead bushes get converted to humus
@@ -880,7 +892,9 @@ mod tests {
         let cell = &mut ecosystem[index];
         assert!(cell.bushes.is_some());
         assert!(cell.get_humus_height() > 0.5);
-        assert_eq!(cell.get_dead_vegetation_biomass(), 0.0);
+        // less dead vegetation but not 0
+        assert!(cell.get_dead_vegetation_biomass() > 0.0);
+        assert!(cell.get_dead_vegetation_biomass() < dead_biomass);
     }
 
     #[test]

@@ -1,5 +1,6 @@
 use gl::types::GLuint;
 use nalgebra::{Matrix3, Matrix4, Vector2, Vector3};
+use rand::Rng;
 use std::ffi::CString;
 
 use crate::{
@@ -22,6 +23,7 @@ pub(crate) struct EcosystemRenderable {
     m_num_line_vertices: GLuint,
     m_model_matrix: Matrix4<f32>,
     m_vertices: Vec<Vector3<f32>>,
+    m_tree_positions: Vec<Vector2<f32>>,
 }
 
 impl EcosystemRenderable {
@@ -73,8 +75,28 @@ impl EcosystemRenderable {
                 let index = CellIndex::new(i, j);
                 let cell = &ecosystem[index];
                 let center: Vector3<f32> = Vector3::new(i as f32, j as f32, cell.get_height());
-                Self::add_tree(center, cell.get_height_of_trees() / 10.0, &mut verts, &mut normals, &mut colors, &mut faces);
-                Self::add_dead(center, cell.get_dead_vegetation_biomass() / 500.0, &mut verts, &mut normals, &mut colors, &mut faces);
+                // let tree_pos = ecosystem_render.m_tree_positions[i + j * constants::AREA_SIDE_LENGTH];
+                // let center = Vector3::new(
+                //     tree_pos.x + i as f32,
+                //     tree_pos.y + j as f32,
+                //     cell.get_height(),
+                // );
+                Self::add_tree(
+                    center,
+                    cell.get_height_of_trees() / 10.0,
+                    &mut verts,
+                    &mut normals,
+                    &mut colors,
+                    &mut faces,
+                );
+                Self::add_dead(
+                    center,
+                    cell.get_dead_vegetation_biomass() / 500.0,
+                    &mut verts,
+                    &mut normals,
+                    &mut colors,
+                    &mut faces,
+                );
                 // Self::add_bush(center, cell.estimate_bush_biomass(), &mut verts, &mut normals, &mut colors, &mut faces);
             }
         }
@@ -93,19 +115,28 @@ impl EcosystemRenderable {
             m_lines_vbo: 0,
             m_lines_ibo: 0,
             m_num_line_vertices: 0,
+            m_tree_positions: vec![],
         };
+
+        // initialize tree positions
+        for _ in 0..num_cells {
+            let mut rng = rand::thread_rng();
+            let x_rand: f32 = rng.gen::<f32>() * 0.7 - 0.5;
+            let y_rand: f32 = rng.gen::<f32>() * 0.7 - 0.5;
+            ecosystem_render.m_tree_positions.push(Vector2::new(x_rand, y_rand));
+        }
 
         // Initialize camera in reasonable location
         let near_plane = 0.001;
         let far_plane = 10000.0;
         let middle = constants::AREA_SIDE_LENGTH as f32 / 2.0;
         let center = Vector3::new(middle, middle, constants::DEFAULT_BEDROCK_HEIGHT);
-        let eye: Vector3<f32> = center + Vector3::new (0.0, 15.0, 15.0);
-            // + Vector3::new(
-            //     0.0,
-            //     2.0 * constants::AREA_SIDE_LENGTH as f32,
-            //     1.5 * constants::AREA_SIDE_LENGTH as f32,
-            // );
+        let eye: Vector3<f32> = center + Vector3::new(0.0, 15.0, 15.0);
+        // + Vector3::new(
+        //     0.0,
+        //     2.0 * constants::AREA_SIDE_LENGTH as f32,
+        //     1.5 * constants::AREA_SIDE_LENGTH as f32,
+        // );
         let target: Vector3<f32> = center;
         println!("center {center:?}");
         println!("eye {eye:?}");
@@ -238,7 +269,6 @@ impl EcosystemRenderable {
         ecosystem_render.m_num_vertices = num_cells as u32;
         ecosystem_render.m_num_drawable_vertices = faces.len() as u32 * 3;
         ecosystem_render.m_num_line_vertices = lines.len() as u32 * 2;
-
         ecosystem_render
     }
 
@@ -248,7 +278,7 @@ impl EcosystemRenderable {
         verts: &mut Vec<Vector3<f32>>,
         normals: &mut Vec<Vector3<f32>>,
         colors: &mut Vec<Vector3<f32>>,
-        faces: &mut Vec<Vector3<i32>>
+        faces: &mut Vec<Vector3<i32>>,
     ) {
         let diameter = Trees::estimate_diameter_from_height(height);
         let resolution: i32 = 16; // Number of sides in the cylinder
@@ -263,8 +293,8 @@ impl EcosystemRenderable {
             let z: f32 = center.z;
             cylinder_verts.push(Vector3::new(x, y, z));
             cylinder_verts.push(Vector3::new(x, y, z + height));
-            cylinder_normals.push(Vector3::new(-phi.cos(), 0.0,  -phi.sin()));
-            cylinder_normals.push(Vector3::new(-phi.cos(), 0.0,  -phi.sin()));
+            cylinder_normals.push(Vector3::new(-phi.cos(), 0.0, -phi.sin()));
+            cylinder_normals.push(Vector3::new(-phi.cos(), 0.0, -phi.sin()));
         }
 
         // Add vertices, normals, and colors to the existing vectors
@@ -290,7 +320,7 @@ impl EcosystemRenderable {
         verts: &mut Vec<Vector3<f32>>,
         normals: &mut Vec<Vector3<f32>>,
         colors: &mut Vec<Vector3<f32>>,
-        faces: &mut Vec<Vector3<i32>>
+        faces: &mut Vec<Vector3<i32>>,
     ) {
         let diameter = Trees::estimate_diameter_from_height(height);
         let resolution: i32 = 16; // Number of sides in the cylinder
@@ -332,7 +362,7 @@ impl EcosystemRenderable {
         verts: &mut Vec<Vector3<f32>>,
         normals: &mut Vec<Vector3<f32>>,
         colors: &mut Vec<Vector3<f32>>,
-        faces: &mut Vec<Vector3<i32>>
+        faces: &mut Vec<Vector3<i32>>,
     ) {
         let diameter = Bushes::estimate_crown_area_from_biomass(biomass);
         let resolution: i32 = 16;
@@ -347,7 +377,11 @@ impl EcosystemRenderable {
                 let y = center.y + diameter * 0.5 * phi.sin() * theta.sin();
                 let z = center.z + diameter * 0.5 * phi.cos();
                 hsphere_verts.push(Vector3::new(x, y, z));
-                hsphere_normals.push(Vector3::new(phi.sin() * theta.cos(), phi.sin() * theta.sin(), phi.cos()));
+                hsphere_normals.push(Vector3::new(
+                    phi.sin() * theta.cos(),
+                    phi.sin() * theta.sin(),
+                    phi.cos(),
+                ));
             }
         }
 
@@ -435,9 +469,29 @@ impl EcosystemRenderable {
             for j in 0..constants::AREA_SIDE_LENGTH {
                 let index = CellIndex::new(i, j);
                 let cell = &self.ecosystem[index];
-                let center: Vector3<f32> = Vector3::new(i as f32, j as f32, cell.get_height());
-                Self::add_tree(center, cell.get_height_of_trees() / 10.0, &mut verts, &mut normals, &mut colors, &mut faces);
-                Self::add_dead(center, cell.get_dead_vegetation_biomass() / 500.0, &mut verts, &mut normals, &mut colors, &mut faces);
+                // let center: Vector3<f32> = Vector3::new(i as f32, j as f32, cell.get_height());
+                let tree_pos = self.m_tree_positions[i + j * constants::AREA_SIDE_LENGTH];
+                let center = Vector3::new(
+                    tree_pos.x + i as f32,
+                    tree_pos.y + j as f32,
+                    cell.get_height(),
+                );
+                Self::add_tree(
+                    center,
+                    cell.get_height_of_trees() / 10.0,
+                    &mut verts,
+                    &mut normals,
+                    &mut colors,
+                    &mut faces,
+                );
+                Self::add_dead(
+                    center,
+                    cell.get_dead_vegetation_biomass() / 500.0,
+                    &mut verts,
+                    &mut normals,
+                    &mut colors,
+                    &mut faces,
+                );
                 // Self::add_bush(center, cell.estimate_bush_biomass(), &mut verts, &mut normals, &mut colors, &mut faces);
             }
         }
@@ -518,7 +572,6 @@ impl EcosystemRenderable {
         }
     }
 
-
     pub fn get_color(ecosystem: &Ecosystem, index: CellIndex) -> Vector3<f32> {
         // rock (gray), sand (pale yellow), humus (light brown), trees (dark green), bushes (medium green), grass (light green), dead (dark brown)
         let mut color: Vector3<f32>;
@@ -534,7 +587,11 @@ impl EcosystemRenderable {
             // use sigmoid interpolation
             // 1/(1+e^-(7x+4))
             let grass_constant = 0.4;
-            let alpha = 1.0 / (f32::powf(std::f32::consts::E, -7.0 * (grass.coverage_density * grass_constant) + 4.0));
+            let alpha = 1.0
+                / (f32::powf(
+                    std::f32::consts::E,
+                    -7.0 * (grass.coverage_density * grass_constant) + 4.0,
+                ));
             color = color * (1.0 - alpha) + constants::GRASS_COLOR * alpha;
         }
 
@@ -560,7 +617,12 @@ impl EcosystemRenderable {
         sand_amt /= height;
         humus_amt /= height;
 
-        (height, rock_amt * constants::ROCK_COLOR + sand_amt * constants::SAND_COLOR + humus_amt * constants::HUMUS_COLOR)
+        (
+            height,
+            rock_amt * constants::ROCK_COLOR
+                + sand_amt * constants::SAND_COLOR
+                + humus_amt * constants::HUMUS_COLOR,
+        )
     }
 }
 
@@ -568,7 +630,6 @@ impl EcosystemRenderable {
 fn get_flat_index(x: i32, y: i32) -> i32 {
     y * constants::AREA_SIDE_LENGTH as i32 + x
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -578,14 +639,18 @@ mod tests {
     use super::{CellIndex, Ecosystem};
     use crate::{
         constants,
-        ecology::{self, Bushes, Cell, Trees}, render::EcosystemRenderable,
+        ecology::{self, Bushes, Cell, Trees},
+        render::EcosystemRenderable,
     };
 
     #[test]
     fn test_get_color() {
         let mut cell = Cell::init();
         cell.add_rocks(1.0);
-        let mut eco = Ecosystem { cells : vec![vec![cell.clone()]], tets: vec![] };
+        let mut eco = Ecosystem {
+            cells: vec![vec![cell.clone()]],
+            tets: vec![],
+        };
         let actual: Vector3<f32> = EcosystemRenderable::get_color(&eco, CellIndex::new(0, 0));
         let expected: Vector3<f32> = constants::ROCK_COLOR;
         assert!(
@@ -593,7 +658,7 @@ mod tests {
             "Expected color {expected}, actual color {actual}"
         );
         cell.add_sand(1.0);
-        eco[CellIndex::new(0,0)] = cell;
+        eco[CellIndex::new(0, 0)] = cell;
         let actual: Vector3<f32> = EcosystemRenderable::get_color(&eco, CellIndex::new(0, 0));
         let expected: Vector3<f32> = (constants::SAND_COLOR + constants::ROCK_COLOR) / 2.0;
         assert!(
