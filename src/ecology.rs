@@ -6,13 +6,15 @@ use std::{
     ops::{Index, IndexMut},
 };
 
+use self::illumination::CellTetrahedron;
+
 mod illumination;
 mod initializer;
 
 pub struct Ecosystem {
     // Array of structs
     pub(crate) cells: Vec<Vec<Cell>>,
-    // latitude, wind direction and strength, etc.
+    tets: Vec<CellTetrahedron>,
 }
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub(crate) struct CellIndex {
@@ -68,6 +70,7 @@ pub(crate) struct Cell {
     dead_vegetation: Option<DeadVegetation>,
 
     pub(crate) soil_moisture: f32,
+    pub(crate) hours_of_sunlight: [f32; 12],
 }
 
 #[derive(Clone)]
@@ -130,26 +133,27 @@ pub(crate) struct DeadVegetation {
 
 impl Ecosystem {
     pub fn init() -> Self {
-        Ecosystem {
+        let mut ecosystem = Ecosystem {
             cells: vec![
                 vec![
-                    Cell {
-                        soil_moisture: 1.8E5,
-                        bedrock: Some(Bedrock {
-                            height: constants::DEFAULT_BEDROCK_HEIGHT,
-                        }),
-                        rock: None,
-                        sand: None,
-                        humus: None,
-                        trees: None,
-                        bushes: None,
-                        grasses: None,
-                        dead_vegetation: None,
-                    };
+                    Cell::init();
                     constants::AREA_SIDE_LENGTH
                 ];
                 constants::AREA_SIDE_LENGTH
             ],
+            tets: vec![],
+        };
+        ecosystem.init_cell_tets();
+        ecosystem
+    }
+
+    fn init_cell_tets(&mut self) {
+        for i in 0..constants::AREA_SIDE_LENGTH - 1 {
+            for j in 0..constants::AREA_SIDE_LENGTH - 1 {
+                let index = CellIndex::new(j, i);
+                let tet = CellTetrahedron::new(index, self);
+                self.tets.push(tet);
+            }
         }
     }
 
@@ -321,8 +325,10 @@ impl Neighbors {
 impl Cell {
     pub(crate) fn init() -> Self {
         Cell {
-            soil_moisture: 0.0,
-            bedrock: None,
+            soil_moisture: 1.8E5,
+            bedrock: Some(Bedrock {
+                height: constants::DEFAULT_BEDROCK_HEIGHT,
+            }),
             rock: None,
             sand: None,
             humus: None,
@@ -330,6 +336,7 @@ impl Cell {
             bushes: None,
             grasses: None,
             dead_vegetation: None,
+            hours_of_sunlight: constants::AVERAGE_SUNLIGHT_HOURS,
         }
     }
     pub(crate) fn get_neighbors(index: &CellIndex) -> Neighbors {
@@ -812,6 +819,7 @@ mod tests {
             bushes: None,
             grasses: None,
             dead_vegetation: None,
+            hours_of_sunlight: constants::AVERAGE_SUNLIGHT_HOURS,
         };
         assert_eq!(cell.get_height(), 116.1);
     }
@@ -828,6 +836,7 @@ mod tests {
             bushes: None,
             grasses: None,
             dead_vegetation: None,
+            hours_of_sunlight: constants::AVERAGE_SUNLIGHT_HOURS,
         };
         assert_eq!(
             cell.get_monthly_temperature(0),
@@ -993,6 +1002,7 @@ mod tests {
             bushes: None,
             grasses: None,
             dead_vegetation: None,
+            hours_of_sunlight: constants::AVERAGE_SUNLIGHT_HOURS,
         };
         let biomass = cell.estimate_tree_biomass();
         let expected = 31.3472;
@@ -1082,6 +1092,7 @@ mod tests {
             bushes: Some(bushes),
             grasses: None,
             dead_vegetation: None,
+            hours_of_sunlight: constants::AVERAGE_SUNLIGHT_HOURS,
         };
         let volume = cell.estimate_bush_biomass();
         let expected = 0.3104;

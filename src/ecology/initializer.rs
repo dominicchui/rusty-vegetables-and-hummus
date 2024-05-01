@@ -8,6 +8,24 @@ impl Ecosystem {
         let mut ecosystem = Self::init();
 
         // add terrain variation
+        let cell = &mut ecosystem[CellIndex::new(0, 3)];
+        cell.add_bedrock(10.0);
+        let cell = &mut ecosystem[CellIndex::new(1, 3)];
+        cell.add_bedrock(10.0);
+        let cell = &mut ecosystem[CellIndex::new(2, 3)];
+        cell.add_bedrock(10.0);
+        let cell = &mut ecosystem[CellIndex::new(3, 3)];
+        cell.add_bedrock(10.0);
+        let cell = &mut ecosystem[CellIndex::new(4, 3)];
+        cell.add_bedrock(10.0);
+        let cell = &mut ecosystem[CellIndex::new(0, 2)];
+        cell.add_bedrock(10.0);
+        let cell = &mut ecosystem[CellIndex::new(4, 2)];
+        cell.add_bedrock(10.0);
+        let cell = &mut ecosystem[CellIndex::new(0, 1)];
+        cell.add_bedrock(10.0);
+        let cell = &mut ecosystem[CellIndex::new(4, 1)];
+        cell.add_bedrock(10.0);
 
         // add humus
         for i in 0..constants::AREA_SIDE_LENGTH {

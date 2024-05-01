@@ -7,13 +7,12 @@ use super::{Cell, CellIndex, Ecosystem};
 // a three dimensional rectangle representing the two planes constructed from a cell index and its neighboring three points
 // for index (x,y), rectangle is formed with (x,y), (x+1, y), (x, y+1), and (x+1, y+1)
 // planes are (x,y), (x+1, y), (x, y+1) and (x+1, y), (x, y+1), (x+1, y+1)
-struct CellTetrahedron {
+pub(crate) struct CellTetrahedron {
     coordinates: Vector4<Vector3<f32>>,
     top_left: CellIndex,
     top_right: CellIndex,
     bottom_left: CellIndex,
     bottom_right: CellIndex,
-    is_dirty: bool,
     normal_one: Vector3<f32>,
     normal_two: Vector3<f32>,
     scalar_one: f32,
@@ -28,7 +27,6 @@ impl CellTetrahedron {
             top_right: CellIndex::new(index.x + 1, index.y),
             bottom_left: CellIndex::new(index.x, index.y + 1),
             bottom_right: CellIndex::new(index.x + 1, index.y + 1),
-            is_dirty: true,
             normal_one: Vector3::zeros(),
             normal_two: Vector3::zeros(),
             scalar_one: 0.0,
@@ -39,129 +37,155 @@ impl CellTetrahedron {
     }
 
     pub(crate) fn update(&mut self, ecosystem: &Ecosystem) {
-        if self.is_dirty {
-            let height = ecosystem[self.top_left].get_height();
-            let a = Vector3::new(self.top_left.x as f32, self.top_left.y as f32, height);
-            self.coordinates[0] = a;
+        let height = ecosystem[self.top_left].get_height();
+        let a = Vector3::new(self.top_left.x as f32, self.top_left.y as f32, height);
+        self.coordinates[0] = a;
 
-            let height = ecosystem[self.top_right].get_height();
-            let b = Vector3::new(self.top_right.x as f32, self.top_right.y as f32, height);
-            self.coordinates[1] = b;
+        let height = ecosystem[self.top_right].get_height();
+        let b = Vector3::new(self.top_right.x as f32, self.top_right.y as f32, height);
+        self.coordinates[1] = b;
 
-            let height = ecosystem[self.bottom_left].get_height();
-            let c = Vector3::new(self.bottom_left.x as f32, self.bottom_left.y as f32, height);
-            self.coordinates[2] = c;
+        let height = ecosystem[self.bottom_left].get_height();
+        let c = Vector3::new(self.bottom_left.x as f32, self.bottom_left.y as f32, height);
+        self.coordinates[2] = c;
 
-            let height = ecosystem[self.bottom_right].get_height();
-            let d = Vector3::new(
-                self.bottom_right.x as f32,
-                self.bottom_right.y as f32,
-                height,
-            );
-            self.coordinates[3] = d;
+        let height = ecosystem[self.bottom_right].get_height();
+        let d = Vector3::new(
+            self.bottom_right.x as f32,
+            self.bottom_right.y as f32,
+            height,
+        );
+        self.coordinates[3] = d;
 
-            // compute plane definitions
-            let normal_one = Cell::get_normal_of_triangle(
-                ecosystem,
-                self.top_left,
-                self.bottom_left,
-                self.top_right,
-            );
-            self.normal_one = normal_one;
-            let scalar_one = -normal_one.dot(&a);
-            self.scalar_one = scalar_one;
+        // compute plane definitions
+        let normal_one = Cell::get_normal_of_triangle(
+            ecosystem,
+            self.top_left,
+            self.bottom_left,
+            self.top_right,
+        );
+        self.normal_one = normal_one;
+        let scalar_one = -normal_one.dot(&a);
+        self.scalar_one = scalar_one;
 
-            let normal_two = Cell::get_normal_of_triangle(
-                ecosystem,
-                self.bottom_left,
-                self.bottom_right,
-                self.top_right,
-            );
-            self.normal_two = normal_two;
-            let scalar_two = -normal_two.dot(&c);
-            self.scalar_two = scalar_two;
-
-            self.is_dirty = false;
-        }
+        let normal_two = Cell::get_normal_of_triangle(
+            ecosystem,
+            self.bottom_left,
+            self.bottom_right,
+            self.top_right,
+        );
+        self.normal_two = normal_two;
+        let scalar_two = -normal_two.dot(&c);
+        self.scalar_two = scalar_two;
     }
 
-    fn has_intersection(&self, pos: Vector3<f32>, dir: Vector3<f32>) -> bool {
-        let mut has_intersect = false;
+    // if intersection, returns t of intersect
+    fn has_intersection(&self, pos: Vector3<f32>, dir: Vector3<f32>) -> Option<f32> {
         let height_top_left = self.coordinates[0][2];
         let height_top_right = self.coordinates[1][2];
         let height_bottom_left = self.coordinates[2][2];
         let height_bottom_right = self.coordinates[3][2];
+        let margin = 0.00001;
         // find intesect with plane one
         let denom = self.normal_one.dot(&dir);
         if denom != 0.0 {
             let t = -(self.normal_one.dot(&pos) + self.scalar_one) / denom;
-            let intersect = pos + t * dir;
-            // println!("intersect {intersect}");
-            // check if intersect is in bounds
-            let min_x = self.top_left.x as f32;
-            let max_x = self.top_right.x as f32;
-            let min_y = self.top_left.y as f32;
-            let max_y = self.bottom_left.y as f32;
-            let min_z = f32::min(
-                height_top_left,
-                f32::min(height_top_right, height_bottom_left),
-            );
-            let max_z = f32::max(
-                height_top_left,
-                f32::max(height_top_right, height_bottom_left),
-            );
-            // println!("min_x {min_x}, max_x {max_x}");
-            // println!("min_y {min_y}, max_y {max_y}");
-            // println!("min_z {min_z}, max_z {max_z}");
-            if min_x < intersect.x
-                && max_x > intersect.x
-                && min_y < intersect.y
-                && max_y > intersect.y
-                && min_z < intersect.z
-                && max_z > intersect.z
-            {
-                return true;
+            if t > 0.0 {
+                let intersect = pos + t * dir;
+                // println!("intersect 1 {intersect}");
+                // check if intersect is in bounds
+                let min_x = self.top_left.x as f32;
+                let max_x = self.top_right.x as f32;
+                let min_y = self.top_left.y as f32;
+                let max_y = self.bottom_left.y as f32;
+                let min_z = f32::min(
+                    height_top_left,
+                    f32::min(height_top_right, height_bottom_left),
+                );
+                let max_z = f32::max(
+                    height_top_left,
+                    f32::max(height_top_right, height_bottom_left),
+                );
+                // println!("min_x {min_x}, max_x {max_x}");
+                // println!("min_y {min_y}, max_y {max_y}");
+                // println!("min_z {min_z}, max_z {max_z}");
+                if min_x < intersect.x + margin
+                    && max_x > intersect.x - margin
+                    && min_y < intersect.y + margin
+                    && max_y > intersect.y - margin
+                    && min_z < intersect.z + margin
+                    && max_z > intersect.z - margin
+                {
+                    // println!("{} intersect {intersect}", self.top_left);
+                    // check that it is inside the triangle
+                    let e0 = self.coordinates[2] - self.coordinates[0];
+                    let e1 = self.coordinates[1] - self.coordinates[2];
+                    let e2 = self.coordinates[0] - self.coordinates[1];
+                    let c0 = intersect - self.coordinates[0];
+                    let c1 = intersect - self.coordinates[2];
+                    let c2 = intersect - self.coordinates[1];
+                    if self.normal_one.dot(&(c0.cross(&e0))) >= 0.0
+                        && self.normal_one.dot(&(c1.cross(&e1))) >= 0.0
+                        && self.normal_one.dot(&(c2.cross(&e2))) >= 0.0
+                    {
+                        return Some(t);
+                    }
+                }
             }
         }
         // find intersect with plane two
         let denom = self.normal_two.dot(&dir);
         if denom != 0.0 {
             let t = -(self.normal_two.dot(&pos) + self.scalar_two) / denom;
-            let intersect = pos + t * dir;
-            // check if intersect is in bounds
-            let min_x = self.top_left.x as f32;
-            let max_x = self.top_right.x as f32;
-            let min_y = self.top_left.y as f32;
-            let max_y = self.bottom_left.y as f32;
-            let min_z = f32::min(
-                height_bottom_right,
-                f32::min(height_top_right, height_bottom_left),
-            );
-            let max_z = f32::max(
-                height_bottom_right,
-                f32::max(height_top_right, height_bottom_left),
-            );
-            let margin = 0.001;
-            if min_x < intersect.x + margin
-                && max_x > intersect.x - margin
-                && min_y < intersect.y + margin
-                && max_y > intersect.y - margin
-                && min_z < intersect.z + margin
-                && max_z > intersect.z - margin
-            {
-                has_intersect = true;
+            if t > 0.0 {
+                let intersect = pos + t * dir;
+                // println!("intersect 2 {intersect}");
+                // check if intersect is in bounds
+                let min_x = self.top_left.x as f32;
+                let max_x = self.top_right.x as f32;
+                let min_y = self.top_left.y as f32;
+                let max_y = self.bottom_left.y as f32;
+                let min_z = f32::min(
+                    height_bottom_right,
+                    f32::min(height_top_right, height_bottom_left),
+                );
+                let max_z = f32::max(
+                    height_bottom_right,
+                    f32::max(height_top_right, height_bottom_left),
+                );
+                if min_x < intersect.x + margin
+                    && max_x > intersect.x - margin
+                    && min_y < intersect.y + margin
+                    && max_y > intersect.y - margin
+                    && min_z < intersect.z + margin
+                    && max_z > intersect.z - margin
+                {
+                    // println!("{} intersect {intersect}", self.top_left);
+                    // check that it is inside the triangle
+                    let e0 = self.coordinates[2] - self.coordinates[1];
+                    let e1 = self.coordinates[3] - self.coordinates[2];
+                    let e2 = self.coordinates[1] - self.coordinates[3];
+                    let c0 = intersect - self.coordinates[1];
+                    let c1 = intersect - self.coordinates[2];
+                    let c2 = intersect - self.coordinates[3];
+
+                    if self.normal_two.dot(&(c0.cross(&e0))) >= 0.0
+                        && self.normal_two.dot(&(c1.cross(&e1))) >= 0.0
+                        && self.normal_two.dot(&(c2.cross(&e2))) >= 0.0
+                    {
+                        return Some(t);
+                    }
+                }
             }
         }
-
-        has_intersect
+        None
     }
 }
 
 impl Ecosystem {
     // estimates the illumination of the cell based on traced rays from the sun moving across the sky
     // returns average daily hours of direct sunlight
-    pub(crate) fn estimate_illumination_simple(&self, index: &CellIndex, month: usize) -> f32 {
-        // todo placeholder estimate
+    pub(crate) fn estimate_illumination_simple(&self, _index: &CellIndex, month: usize) -> f32 {
         constants::AVERAGE_SUNLIGHT_HOURS[month]
     }
 
@@ -169,20 +193,52 @@ impl Ecosystem {
         // estimate illumination of given cell using rays traced from sun's position across the sky over the year
 
         // compute sun arc for 1st of every month
-        let mut hours_of_sun = 0.0;
-        for i in 0..24 {
+        let mut hours_of_sun = 0;
+        'outer: for i in 0..24 {
             // for every hour, determine if sun is above horizon
             let (azimuth, elevation) = get_azimuth_and_elevation(month, i as f32);
             if elevation < 0.0 {
                 continue;
             }
+            println!("hour {i}");
             // if so, trace rays to determine hours of light
+            // direction towards the sun in the sky
+            // positive X is east, positive Y is north
+            let sun_sky_pos = convert_from_spherical_to_cartesian(azimuth, elevation);
+            // center of the target cell
+            let center = self.get_position_of_cell(index)+Vector3::new(0.5, 0.5, 0.0);
+            // position is "where the sun is" relative to center; essentially model a far away sun at a particular position in the sky
+            let pos =  center + sun_sky_pos * constants::AREA_SIDE_LENGTH as f32 * 10.0;
+            // direction is the unit vector from the position of the sun to the target
+            let dir = -sun_sky_pos;
+            println!("sun_sky_pos {sun_sky_pos}");
+            println!("pos {pos}");
+            println!("dir {dir}");
+            for tet in &self.tets {
+                if let Some(t) = tet.has_intersection(pos, dir) {
+                    // check if intersection is with itself
+                    // subtract one from length because edges don't have associated tets
+                    let flat_index = index.x + index.y * (constants::AREA_SIDE_LENGTH - 1);
+                    // println!("index {index}, flat_index {flat_index}");
+                    let self_tet = &self.tets[flat_index];
+                    if let Some(self_t) = self_tet.has_intersection(pos, dir) {
+                        if t == self_t {
+                            continue;
+                        }
+                    }
+                    continue 'outer;
+                }
+            }
+            hours_of_sun += 1;
         }
 
-        // ray trace for each hour(?) of the day to estimate illumination
+        hours_of_sun as f32
+    }
 
-        // todo replace placeholder value
-        0.0
+    // call this function to update the topography for illumination ray tracing
+    pub(crate) fn update_tets(&mut self) {
+        // todo make more efficient than completely rebuilding
+        self.init_cell_tets();
     }
 }
 
@@ -268,11 +324,11 @@ fn get_azimuth_and_elevation(month: usize, local_time: f32) -> (f32, f32) {
 }
 
 // convert from angles given in the azimuth-altitude/elevation system to x,y,z cartesian (z up)
-fn convert_from_spherical_to_cartesian(azimuth: f32, elevation: f32) -> (f32, f32, f32) {
+fn convert_from_spherical_to_cartesian(azimuth: f32, elevation: f32) -> Vector3<f32> {
     let x = azimuth.sin() * elevation.cos();
     let y = azimuth.cos() * elevation.cos();
     let z = elevation.sin();
-    (x, y, z)
+    Vector3::new(x, y, z)
 }
 
 #[cfg(test)]
@@ -281,10 +337,7 @@ mod tests {
     use nalgebra::Vector3;
 
     use crate::ecology::{
-        illumination::{
-            compute_equation_of_time, get_azimuth_and_elevation, get_declination, get_elevation,
-            get_hour_angle,
-        },
+        illumination::{compute_equation_of_time, get_azimuth_and_elevation, get_declination},
         CellIndex, Ecosystem,
     };
 
@@ -394,8 +447,10 @@ mod tests {
     fn test_convert_from_spherical_to_cartesian() {
         // on the horizon, exactly north
         let (azimuth, elevation) = (0.0, 0.0);
-        let (x, y, z) = convert_from_spherical_to_cartesian(azimuth, elevation);
-
+        let dir = convert_from_spherical_to_cartesian(azimuth, elevation);
+        let x = dir.x;
+        let y = dir.y;
+        let z = dir.z;
         let expected = 0.0;
         assert!(
             approx_eq!(f32, x, expected, epsilon = 0.01),
@@ -416,7 +471,10 @@ mod tests {
 
         // directly overhead
         let (azimuth, elevation) = (f32::to_radians(90.0), f32::to_radians(90.0));
-        let (x, y, z) = convert_from_spherical_to_cartesian(azimuth, elevation);
+        let dir = convert_from_spherical_to_cartesian(azimuth, elevation);
+        let x = dir.x;
+        let y = dir.y;
+        let z = dir.z;
 
         let expected = 0.0;
         assert!(
@@ -438,7 +496,10 @@ mod tests {
 
         // 45° up, exactly NE
         let (azimuth, elevation) = (f32::to_radians(45.0), f32::to_radians(45.0));
-        let (x, y, z) = convert_from_spherical_to_cartesian(azimuth, elevation);
+        let dir = convert_from_spherical_to_cartesian(azimuth, elevation);
+        let x = dir.x;
+        let y = dir.y;
+        let z = dir.z;
 
         let expected = 0.5;
         assert!(
@@ -473,24 +534,66 @@ mod tests {
         assert_eq!(tet.normal_one.z, 1.0);
 
         // test intersections
-        let pos = Vector3::new(0.0, 0.0, 0.0);
-        let dir = Vector3::new(0.0, 0.0, 1.0);
-        assert!(tet.has_intersection(pos, dir));
+        let pos = Vector3::new(0.0, 0.0, 200.0);
+        let dir = Vector3::new(0.0, 0.0, -1.0);
+        assert!(tet.has_intersection(pos, dir).is_some());
 
-        let pos = Vector3::new(0.5, 0.5, 0.0);
-        let dir = Vector3::new(0.0, 0.0, 1.0);
-        assert!(tet.has_intersection(pos, dir));
+        let pos = Vector3::new(0.5, 0.5, 200.0);
+        let dir = Vector3::new(0.0, 0.0, -1.0);
+        assert!(tet.has_intersection(pos, dir).is_some());
 
-        let pos = Vector3::new(1.5, 0.5, 0.0);
-        let dir = Vector3::new(0.0, 0.0, 1.0);
-        assert!(!tet.has_intersection(pos, dir));
+        let pos = Vector3::new(1.5, 0.5, 200.0);
+        let dir = Vector3::new(0.0, 0.0, -1.0);
+        assert!(tet.has_intersection(pos, dir).is_none());
 
-        let pos = Vector3::new(0.5, 0.5, 99.0);
-        let dir = Vector3::new(0.3, 0.3, 1.0).normalize();
-        assert!(tet.has_intersection(pos, dir));
-
-        let pos = Vector3::new(0.5, 0.5, 99.0);
+        let pos = Vector3::new(0.5, 0.5, 101.0);
         let dir = Vector3::new(0.3, 0.3, -1.0).normalize();
-        assert!(tet.has_intersection(pos, dir));
+        assert!(tet.has_intersection(pos, dir).is_some());
+
+        // directionality should matter
+        let pos = Vector3::new(0.5, 0.5, 101.0);
+        let dir = Vector3::new(0.3, 0.3, 1.0).normalize();
+        assert!(tet.has_intersection(pos, dir).is_none());
+    }
+
+    #[test]
+    fn test_estimate_illumination_ray_traced() {
+        let mut ecosystem = Ecosystem::init();
+        let index = CellIndex::new(2, 2);
+        let illumination = ecosystem.estimate_illumination_ray_traced(&index, 0);
+        assert_eq!(illumination, 9.0);
+
+        let index = CellIndex::new(2, 2);
+        let illumination = ecosystem.estimate_illumination_ray_traced(&index, 6);
+        assert_eq!(illumination, 15.0);
+
+        // add a tall hill to the south (negative Y direction)
+        let height = 10.0;
+        let cell = &mut ecosystem[CellIndex::new(0, 0)];
+        cell.add_bedrock(height);
+        let cell = &mut ecosystem[CellIndex::new(1, 0)];
+        cell.add_bedrock(height);
+        let cell = &mut ecosystem[CellIndex::new(2, 0)];
+        cell.add_bedrock(height);
+        let cell = &mut ecosystem[CellIndex::new(3, 0)];
+        cell.add_bedrock(height);
+        let cell = &mut ecosystem[CellIndex::new(4, 0)];
+        cell.add_bedrock(height);
+        let cell = &mut ecosystem[CellIndex::new(0, 1)];
+        cell.add_bedrock(height);
+        let cell = &mut ecosystem[CellIndex::new(4, 1)];
+        cell.add_bedrock(height);
+        let cell = &mut ecosystem[CellIndex::new(0, 2)];
+        cell.add_bedrock(height);
+        let cell = &mut ecosystem[CellIndex::new(4, 2)];
+        cell.add_bedrock(height);
+        ecosystem.update_tets();
+
+        let index = CellIndex::new(2, 2);
+        let illumination = ecosystem.estimate_illumination_ray_traced(&index, 0);
+        assert_eq!(illumination, 0.0);
+
+        let illumination = ecosystem.estimate_illumination_ray_traced(&index, 6);
+        assert_eq!(illumination, 3.0);
     }
 }
