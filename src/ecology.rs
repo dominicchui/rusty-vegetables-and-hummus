@@ -135,10 +135,7 @@ impl Ecosystem {
     pub fn init() -> Self {
         let mut ecosystem = Ecosystem {
             cells: vec![
-                vec![
-                    Cell::init();
-                    constants::AREA_SIDE_LENGTH
-                ];
+                vec![Cell::init(); constants::AREA_SIDE_LENGTH];
                 constants::AREA_SIDE_LENGTH
             ],
             tets: vec![],

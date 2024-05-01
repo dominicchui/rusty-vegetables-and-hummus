@@ -172,8 +172,8 @@ fn move_camera(ecosystem: &mut EcosystemRenderable, dirs: HashSet<Direction>, de
         match dir {
             Direction::Up => m_vertical += constants::SPEED,
             Direction::Down => m_vertical -= constants::SPEED,
-            Direction::Left => m_sideways -= constants::SPEED,
-            Direction::Right => m_sideways += constants::SPEED,
+            Direction::Left => m_sideways += constants::SPEED,
+            Direction::Right => m_sideways -= constants::SPEED,
             Direction::Forward => m_forward += constants::SPEED,
             Direction::Back => m_forward -= constants::SPEED,
         }
@@ -183,7 +183,7 @@ fn move_camera(ecosystem: &mut EcosystemRenderable, dirs: HashSet<Direction>, de
     look = look.normalize();
     let perp: Vector3<f32> = Vector3::new(-look.z, 0.0, look.x).normalize();
     let mut move_vec: Vector3<f32> =
-        m_forward * look + m_sideways * perp + m_vertical * Vector3::new(0.0, 1.0, 0.0);
+        m_forward * look + m_sideways * perp + m_vertical * Vector3::new(0.0, 0.0, 1.0);
     move_vec *= delta_seconds;
     ecosystem.m_camera.move_camera(move_vec);
 }

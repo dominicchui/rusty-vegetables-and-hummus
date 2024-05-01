@@ -3,7 +3,7 @@ pub(crate) const SCREEN_HEIGHT: usize = 1000;
 pub(crate) const SPEED: f32 = AREA_SIDE_LENGTH as f32;
 
 // https://extension.psu.edu/calculating-the-green-weight-of-wood-species
-pub(crate) const AREA_SIDE_LENGTH: usize = 5; // in cells
+pub(crate) const AREA_SIDE_LENGTH: usize = 10; // in cells
 pub(crate) const CELL_SIDE_LENGTH: f32 = 10.0; // in meters
 pub(crate) const DEFAULT_BEDROCK_HEIGHT: f32 = 100.0; // in meters
 
@@ -31,10 +31,13 @@ pub(crate) const GRASS_DENSITY: f32 = 1.0; // kg/m^3
 pub(crate) const AVERAGE_MONTHLY_TEMPERATURES: [f32; 12] = [
     -2.0, -0.8, 2.8, 8.8, 14.3, 19.2, 23.0, 22.3, 18.7, 12.5, 6.7, 1.5,
 ]; // in celsius
-pub(crate) const AVERAGE_SUNLIGHT_HOURS: [f32; 12] =
-    [6.0, 6.8, 7.2, 8.2, 8.4, 9.5, 10.3, 9.2, 7.7, 6.6, 6.0, 5.6]; // in hours per day (source unclear but most likely weather dependent)
+pub(crate) const AVERAGE_SUNLIGHT_HOURS: [f32; 12] = [
+    6.75, 6.75, 8.25, 9.75, 10.5, 11.25, 11.25, 10.5, 9.75, 9.0, 7.5, 7.5,
+];
 pub(crate) const AVERAGE_MONTHLY_RAINFALL: [f32; 12] = [
     96.0, 81.0, 111.0, 99.0, 86.0, 91.0, 87.0, 103.0, 93.0, 106.0, 88.0, 110.0,
 ]; // in mm per month
+   // modifier on sunlight hours when ray-traced to account for cloud coverage
+pub(crate) const PERCENT_SUNNY_DAYS: f32 = 0.75;
 
 pub(crate) const DEFAULT_HUMUS_HEIGHT: f32 = 0.5;

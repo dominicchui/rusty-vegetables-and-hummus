@@ -190,8 +190,36 @@ impl Ecosystem {
     }
 
     pub(crate) fn estimate_illumination_ray_traced(&self, index: &CellIndex, month: usize) -> f32 {
-        // estimate illumination of given cell using rays traced from sun's position across the sky over the year
+        let cell = &self[*index];
+        cell.hours_of_sunlight[month]
+    }
 
+    // recomputes ray traced sunlight for all cells
+    pub(crate) fn recompute_sunlight(&mut self) {
+        // two of the edges don't have ray traced computation due to lacking the triangles required
+        for i in 0..constants::AREA_SIDE_LENGTH - 1 {
+            for j in 0..constants::AREA_SIDE_LENGTH - 1 {
+                let index = CellIndex::new(i, j);
+                self.compute_hours_of_sunlight_for_cell(&index);
+            }
+        }
+    }
+
+    // recomputes the hours of sunlight a cell receives based on ray tracing the sun
+    pub(crate) fn compute_hours_of_sunlight_for_cell(&mut self, index: &CellIndex) {
+        let mut monthly_hours = [0.0; 12];
+        for (i, entry) in monthly_hours.iter_mut().enumerate() {
+            let hours = self.ray_trace_illumination(index, i);
+            // println!("hours {hours} for month {i}");
+            *entry = hours;
+        }
+        // println!("{index} monthly_hours {monthly_hours:?}");
+        let cell = &mut self[*index];
+        cell.hours_of_sunlight = monthly_hours;
+    }
+
+    // estimate illumination of given cell using rays traced from sun's position across the sky over the year
+    pub(crate) fn ray_trace_illumination(&self, index: &CellIndex, month: usize) -> f32 {
         // compute sun arc for 1st of every month
         let mut hours_of_sun = 0;
         'outer: for i in 0..24 {
@@ -200,39 +228,40 @@ impl Ecosystem {
             if elevation < 0.0 {
                 continue;
             }
-            println!("hour {i}");
             // if so, trace rays to determine hours of light
             // direction towards the sun in the sky
             // positive X is east, positive Y is north
-            let sun_sky_pos = convert_from_spherical_to_cartesian(azimuth, elevation);
+            let sun_dir = convert_from_spherical_to_cartesian(azimuth, elevation);
             // center of the target cell
-            let center = self.get_position_of_cell(index)+Vector3::new(0.5, 0.5, 0.0);
+            let center = self.get_position_of_cell(index) + Vector3::new(0.5, 0.5, 0.0);
+            // println!("center {center}");
             // position is "where the sun is" relative to center; essentially model a far away sun at a particular position in the sky
-            let pos =  center + sun_sky_pos * constants::AREA_SIDE_LENGTH as f32 * 10.0;
-            // direction is the unit vector from the position of the sun to the target
-            let dir = -sun_sky_pos;
-            println!("sun_sky_pos {sun_sky_pos}");
-            println!("pos {pos}");
-            println!("dir {dir}");
+            let pos = center + sun_dir * 0.01; // + sun_sky_pos * constants::AREA_SIDE_LENGTH as f32 * 100.0;
+                                               // direction is the unit vector from the position of the sun to the target
+            let dir = sun_dir;
+            // println!("{index} month {month}");
+            // println!("pos {pos}, dir {dir}");
             for tet in &self.tets {
-                if let Some(t) = tet.has_intersection(pos, dir) {
-                    // check if intersection is with itself
-                    // subtract one from length because edges don't have associated tets
-                    let flat_index = index.x + index.y * (constants::AREA_SIDE_LENGTH - 1);
-                    // println!("index {index}, flat_index {flat_index}");
-                    let self_tet = &self.tets[flat_index];
-                    if let Some(self_t) = self_tet.has_intersection(pos, dir) {
-                        if t == self_t {
-                            continue;
-                        }
-                    }
+                if let Some(_) = tet.has_intersection(pos, dir) {
+                    // // check if intersection is with itself
+                    // // subtract one from length because edges don't have associated tets
+                    // let flat_index = index.x + index.y * (constants::AREA_SIDE_LENGTH - 1);
+                    // // println!("index {index}, flat_index {flat_index}");
+                    // let self_tet = &self.tets[flat_index];
+                    // if let Some(self_t) = self_tet.has_intersection(pos, dir) {
+                    //     if t == self_t {
+                    //         continue;
+                    //     }
+                    // }
                     continue 'outer;
                 }
             }
             hours_of_sun += 1;
         }
 
-        hours_of_sun as f32
+        // apply weather modifier
+
+        hours_of_sun as f32 * constants::PERCENT_SUNNY_DAYS
     }
 
     // call this function to update the topography for illumination ray tracing
@@ -336,9 +365,12 @@ mod tests {
     use float_cmp::approx_eq;
     use nalgebra::Vector3;
 
-    use crate::ecology::{
-        illumination::{compute_equation_of_time, get_azimuth_and_elevation, get_declination},
-        CellIndex, Ecosystem,
+    use crate::{
+        constants,
+        ecology::{
+            illumination::{compute_equation_of_time, get_azimuth_and_elevation, get_declination},
+            CellIndex, Ecosystem,
+        },
     };
 
     use super::{convert_from_spherical_to_cartesian, CellTetrahedron};
@@ -560,12 +592,12 @@ mod tests {
     fn test_estimate_illumination_ray_traced() {
         let mut ecosystem = Ecosystem::init();
         let index = CellIndex::new(2, 2);
-        let illumination = ecosystem.estimate_illumination_ray_traced(&index, 0);
-        assert_eq!(illumination, 9.0);
+        let illumination = ecosystem.ray_trace_illumination(&index, 0);
+        assert_eq!(illumination, 9.0 * constants::PERCENT_SUNNY_DAYS);
 
         let index = CellIndex::new(2, 2);
-        let illumination = ecosystem.estimate_illumination_ray_traced(&index, 6);
-        assert_eq!(illumination, 15.0);
+        let illumination = ecosystem.ray_trace_illumination(&index, 6);
+        assert_eq!(illumination, 15.0 * constants::PERCENT_SUNNY_DAYS);
 
         // add a tall hill to the south (negative Y direction)
         let height = 10.0;
@@ -590,10 +622,40 @@ mod tests {
         ecosystem.update_tets();
 
         let index = CellIndex::new(2, 2);
-        let illumination = ecosystem.estimate_illumination_ray_traced(&index, 0);
-        assert_eq!(illumination, 0.0);
+        let illumination = ecosystem.ray_trace_illumination(&index, 0);
+        assert_eq!(illumination, 0.0 * constants::PERCENT_SUNNY_DAYS);
 
-        let illumination = ecosystem.estimate_illumination_ray_traced(&index, 6);
-        assert_eq!(illumination, 3.0);
+        let illumination = ecosystem.ray_trace_illumination(&index, 6);
+        assert_eq!(illumination, 3.0 * constants::PERCENT_SUNNY_DAYS);
+    }
+
+    #[test]
+    fn test_compute_hours_of_sunlight_for_cell() {
+        let mut ecosystem = Ecosystem::init();
+        for row in &mut ecosystem.cells {
+            for cell in row {
+                cell.add_humus(1.0);
+            }
+        }
+        let index = CellIndex::new(2, 2);
+        let cell = &ecosystem[index];
+        assert_eq!(cell.hours_of_sunlight, constants::AVERAGE_SUNLIGHT_HOURS);
+
+        ecosystem.recompute_sunlight();
+        let cell = &ecosystem[index];
+        let expected = [
+            9.0, 9.0, 11.0, 13.0, 14.0, 15.0, 15.0, 14.0, 13.0, 12.0, 10.0, 10.0,
+        ]
+        .map(|x| x * constants::PERCENT_SUNNY_DAYS);
+        assert_eq!(cell.hours_of_sunlight, expected);
+        assert_eq!(ecosystem[CellIndex::new(0, 0)].hours_of_sunlight, expected);
+        assert_eq!(ecosystem[CellIndex::new(0, 1)].hours_of_sunlight, expected);
+        assert_eq!(ecosystem[CellIndex::new(0, 2)].hours_of_sunlight, expected);
+        assert_eq!(ecosystem[CellIndex::new(0, 4)].hours_of_sunlight, expected);
+        assert_eq!(ecosystem[CellIndex::new(0, 3)].hours_of_sunlight, expected);
+        assert_eq!(ecosystem[CellIndex::new(1, 3)].hours_of_sunlight, expected);
+        assert_eq!(ecosystem[CellIndex::new(2, 3)].hours_of_sunlight, expected);
+        assert_eq!(ecosystem[CellIndex::new(3, 3)].hours_of_sunlight, expected);
+        assert_eq!(ecosystem[CellIndex::new(4, 4)].hours_of_sunlight, expected);
     }
 }
