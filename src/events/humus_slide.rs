@@ -59,8 +59,8 @@ impl Events {
         target: CellIndex,
     ) -> f32 {
         let cell = &ecosystem[origin];
-        if cell.humus.is_some() {
-            let humus_height = cell.get_height_of_humus();
+        let humus_height = cell.get_humus_height();
+        if humus_height > 0.0 {
             let origin_pos = ecosystem.get_position_of_cell(&origin);
             let target_pos = ecosystem.get_position_of_cell(&target);
             let ideal_height = Events::compute_ideal_slide_height(
@@ -109,7 +109,7 @@ mod tests {
         assert_eq!(index, CellIndex::new(3, 2));
 
         let center = &mut ecosystem[CellIndex::new(3, 3)];
-        let humus_height = center.get_height_of_humus();
+        let humus_height = center.get_humus_height();
         let expected = 0.916;
         assert!(
             approx_eq!(f32, humus_height, expected, epsilon = 0.01),
@@ -117,7 +117,7 @@ mod tests {
         );
 
         let up = &mut ecosystem[CellIndex::new(3, 2)];
-        let humus_height = up.get_height_of_humus();
+        let humus_height = up.get_humus_height();
         let expected = 0.084;
         assert!(
             approx_eq!(f32, humus_height, expected, epsilon = 0.01),
