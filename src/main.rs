@@ -5,7 +5,7 @@ use sdl2::{
     sys::{SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency},
 };
 use simulation::Simulation;
-use std::{collections::HashSet, ffi::CString};
+use std::{collections::HashSet, ffi::CString, thread::sleep, time::Duration};
 
 mod camera;
 mod constants;
@@ -72,13 +72,15 @@ fn main() {
     let mut simulation = Simulation::init();
 
     // main loop
+    let mut count = 0;
     let mut paused = true;
     let mut prev_keys = HashSet::new();
-    let mut now;
+    let now;
     unsafe {
         now = SDL_GetPerformanceCounter();
     }
-    let mut start = now;
+    let mut loop_start;
+    let mut loop_end = now;
     let mut event_pump = sdl.event_pump().unwrap();
     'main: loop {
         for event in event_pump.poll_iter() {
@@ -106,10 +108,21 @@ fn main() {
         // handle ticks
         let elapsed_secs;
         unsafe {
-            now = SDL_GetPerformanceCounter();
-            elapsed_secs = (now - start) as f64 / SDL_GetPerformanceFrequency() as f64;
+            loop_start = SDL_GetPerformanceCounter();
+            elapsed_secs = (loop_start - loop_end) as f64 / SDL_GetPerformanceFrequency() as f64;
+
+            if !paused {
+                println!("\nTime step {count}");
+                println!("elapsed_secs {elapsed_secs}");
+                simulation.take_time_step();
+                count += 1;
+                let duration = (0.25 - elapsed_secs) * 1000.0;
+                println!("sleep duration {duration} ms");
+                sleep(Duration::from_millis(duration as u64));
+            }
+            loop_end = SDL_GetPerformanceCounter();
         }
-        start = now;
+        //start = now;
 
         // Handle key input
         // Create a set of pressed Keys.
@@ -123,7 +136,9 @@ fn main() {
         let new_keys = &keys - &prev_keys;
         prev_keys = keys.clone();
         if new_keys.contains(&Keycode::Space) {
+            println!("\nTime step {count}");
             simulation.take_time_step();
+            count += 1;
         }
 
         if new_keys.contains(&Keycode::T) {
@@ -155,10 +170,10 @@ fn move_camera(ecosystem: &mut EcosystemRenderable, dirs: HashSet<Direction>, de
 
     for dir in dirs {
         match dir {
-            Direction::Up => m_vertical += constants::SPEED,
-            Direction::Down => m_vertical -= constants::SPEED,
-            Direction::Left => m_sideways -= constants::SPEED,
-            Direction::Right => m_sideways += constants::SPEED,
+            Direction::Up => m_vertical -= constants::SPEED,
+            Direction::Down => m_vertical += constants::SPEED,
+            Direction::Left => m_sideways += constants::SPEED,
+            Direction::Right => m_sideways -= constants::SPEED,
             Direction::Forward => m_forward += constants::SPEED,
             Direction::Back => m_forward -= constants::SPEED,
         }

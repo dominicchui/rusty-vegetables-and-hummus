@@ -58,8 +58,8 @@ impl Events {
         target: CellIndex,
     ) -> f32 {
         let cell = &ecosystem[origin];
-        if cell.rock.is_some() {
-            let rock_height = cell.get_height_of_rock();
+        let rock_height = cell.get_rock_height();
+        if rock_height > 0.0 {
             let origin_pos = ecosystem.get_position_of_cell(&origin);
             let target_pos = ecosystem.get_position_of_cell(&target);
             let ideal_height = Events::compute_ideal_slide_height(
@@ -108,7 +108,7 @@ mod tests {
         assert_eq!(index, CellIndex::new(3, 2));
 
         let center = &mut ecosystem[CellIndex::new(3, 3)];
-        let rock_height = center.get_height_of_rock();
+        let rock_height = center.get_rock_height();
         let expected = 0.916;
         assert!(
             approx_eq!(f32, rock_height, expected, epsilon = 0.01),
@@ -116,7 +116,7 @@ mod tests {
         );
 
         let up = &mut ecosystem[CellIndex::new(3, 2)];
-        let rock_height = up.get_height_of_rock();
+        let rock_height = up.get_rock_height();
         let expected = 0.084;
         assert!(
             approx_eq!(f32, rock_height, expected, epsilon = 0.01),
