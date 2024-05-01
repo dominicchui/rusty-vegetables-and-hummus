@@ -14,7 +14,7 @@ mod initializer;
 pub struct Ecosystem {
     // Array of structs
     pub(crate) cells: Vec<Vec<Cell>>,
-    tets: Vec<CellTetrahedron>,
+    pub(crate) tets: Vec<CellTetrahedron>,
 }
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub(crate) struct CellIndex {
@@ -152,29 +152,6 @@ impl Ecosystem {
                 self.tets.push(tet);
             }
         }
-    }
-
-    pub fn get_color(&self, index: CellIndex) -> Vector3<f32> {
-        // rock (gray), sand (pale yellow), humus (light brown), trees (dark green), bushes (medium green), grass (light green), dead (dark brown)
-        let mut color: Vector3<f32>;
-        let soil_height: f32;
-
-        (soil_height, color) = self[index].get_soil_color();
-        if soil_height == 0.0 {
-            color = constants::BEDROCK_COLOR;
-        }
-
-        if let Some(grass) = &self[index].grasses {
-            let alpha = grass.coverage_density;
-            color = color * (1.0 - alpha) + constants::GRASS_COLOR * alpha;
-        }
-
-        // let mut top_biomass = self[index].estimate_bush_biomass() + self[index].estimate_tree_biomass();
-        // if let Some(dead) = &self[index].dead_vegetation {
-        //     top_biomass += dead.biomass;
-        // }
-
-        color
     }
 
     pub(crate) fn get_normal(&self, index: CellIndex) -> Vector3<f32> {
@@ -428,31 +405,6 @@ impl Cell {
             height += humus.height;
         }
         height
-    }
-
-    pub(crate) fn get_soil_color(self: &Cell) -> (f32, Vector3<f32>) {
-        let mut height = 0.0;
-        let mut rock_amt = 0.0;
-        let mut sand_amt = 0.0;
-        let mut humus_amt = 0.0;
-        if let Some(rock) = &self.rock {
-            height += rock.height;
-            rock_amt += rock.height;
-        }
-        if let Some(sand) = &self.sand {
-            height += sand.height;
-            sand_amt += sand.height;
-        }
-        if let Some(humus) = &self.humus {
-            height += humus.height;
-            humus_amt += humus.height;
-        }
-
-        rock_amt /= height;
-        sand_amt /= height;
-        humus_amt /= height;
-
-        (height, rock_amt * constants::ROCK_COLOR + sand_amt * constants::SAND_COLOR + humus_amt * constants::HUMUS_COLOR)
     }
     
     pub(crate) fn get_monthly_temperature(self: &Cell, month: usize) -> f32 {
@@ -1203,39 +1155,6 @@ mod tests {
         assert!(
             approx_eq!(f32, density, expected, epsilon = 0.001),
             "Expected {expected}, actual {density}"
-        );
-    }
-
-    #[test]
-    fn test_get_color() {
-        let mut cell = Cell {
-            soil_moisture: 0.0,
-            sunlight: 0.0,
-            temperature: 0.0,
-            bedrock: None,
-            rock: Some(Rock{height:1.0}),
-            sand: None,
-            humus: None,
-            trees: None,
-            bushes: None,
-            grasses: None,
-            dead_vegetation: None,
-        };
-        let mut eco = Ecosystem { cells : vec![vec![cell.clone()]] };
-        let actual: Vector3<f32> = eco.get_color(CellIndex {x:0, y:0} );
-        let expected: Vector3<f32> = constants::ROCK_COLOR;
-        assert!(
-            actual == expected,
-            "Expected color {expected}, actual color {actual}"
-        );
-
-        cell.sand = Some(Sand{height:1.0});
-        eco[CellIndex{x:0,y:0}] = cell;
-        let actual: Vector3<f32> = eco.get_color(CellIndex{x:0,y:0});
-        let expected: Vector3<f32> = (constants::SAND_COLOR + constants::ROCK_COLOR) / 2.0;
-        assert!(
-            actual == expected,
-            "Expected color {expected}, actual color {actual}"
         );
     }
   

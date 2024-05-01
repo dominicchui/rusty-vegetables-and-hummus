@@ -46,7 +46,7 @@ impl EcosystemRenderable {
                 let height = cell.get_height();
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(ecosystem.get_normal(index));
-                colors.push(ecosystem.get_color(index));
+                colors.push(Self::get_color(&ecosystem, index));
             }
         }
         // simple tessellation of square grid
@@ -74,7 +74,7 @@ impl EcosystemRenderable {
                 let cell = &ecosystem[index];
                 let center: Vector3<f32> = Vector3::new(i as f32, j as f32, cell.get_height());
                 Self::add_tree(center, cell.get_height_of_trees() / 10.0, &mut verts, &mut normals, &mut colors, &mut faces);
-                Self::add_dead(center, cell.get_dead_vegetation() / 10.0, &mut verts, &mut normals, &mut colors, &mut faces);
+                Self::add_dead(center, cell.get_dead_vegetation_biomass() / 500.0, &mut verts, &mut normals, &mut colors, &mut faces);
                 // Self::add_bush(center, cell.estimate_bush_biomass(), &mut verts, &mut normals, &mut colors, &mut faces);
             }
         }
@@ -426,7 +426,7 @@ impl EcosystemRenderable {
                 let height = cell.get_height();
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(self.ecosystem.get_normal(index));
-                colors.push(self.ecosystem.get_color(index));
+                colors.push(Self::get_color(&self.ecosystem, index));
             }
         }
 
@@ -437,7 +437,7 @@ impl EcosystemRenderable {
                 let cell = &self.ecosystem[index];
                 let center: Vector3<f32> = Vector3::new(i as f32, j as f32, cell.get_height());
                 Self::add_tree(center, cell.get_height_of_trees() / 10.0, &mut verts, &mut normals, &mut colors, &mut faces);
-                Self::add_dead(center, cell.get_dead_vegetation() / 10.0, &mut verts, &mut normals, &mut colors, &mut faces);
+                Self::add_dead(center, cell.get_dead_vegetation_biomass() / 500.0, &mut verts, &mut normals, &mut colors, &mut faces);
                 // Self::add_bush(center, cell.estimate_bush_biomass(), &mut verts, &mut normals, &mut colors, &mut faces);
             }
         }
@@ -517,9 +517,88 @@ impl EcosystemRenderable {
             gl::BindVertexArray(0);
         }
     }
+
+
+    pub fn get_color(ecosystem: &Ecosystem, index: CellIndex) -> Vector3<f32> {
+        // rock (gray), sand (pale yellow), humus (light brown), trees (dark green), bushes (medium green), grass (light green), dead (dark brown)
+        let mut color: Vector3<f32>;
+        let soil_height: f32;
+
+        (soil_height, color) = Self::get_soil_color(ecosystem, index);
+        // println!("color {color}");
+        if soil_height == 0.0 {
+            color = constants::BEDROCK_COLOR;
+        }
+
+        if let Some(grass) = &ecosystem[index].grasses {
+            // use sigmoid interpolation
+            // 1/(1+e^-(7x+4))
+            let grass_constant = 0.4;
+            let alpha = 1.0 / (f32::powf(std::f32::consts::E, -7.0 * (grass.coverage_density * grass_constant) + 4.0));
+            color = color * (1.0 - alpha) + constants::GRASS_COLOR * alpha;
+        }
+
+        // let mut top_biomass = self[index].estimate_bush_biomass() + self[index].estimate_tree_biomass();
+        // if let Some(dead) = &self[index].dead_vegetation {
+        //     top_biomass += dead.biomass;
+        // }
+
+        color
+    }
+
+    pub(crate) fn get_soil_color(ecosystem: &Ecosystem, index: CellIndex) -> (f32, Vector3<f32>) {
+        let cell = &ecosystem[index];
+        let mut rock_amt = cell.get_rock_height();
+        let mut sand_amt = cell.get_sand_height();
+        let mut humus_amt = cell.get_humus_height() * 30.0; // increase humus color weighting
+        let height = rock_amt + sand_amt + humus_amt;
+        // println!("rocks_height {rock_amt}");
+        // println!("sand_amt {sand_amt}");
+        // println!("humus_height {humsus_amt}");
+
+        rock_amt /= height;
+        sand_amt /= height;
+        humus_amt /= height;
+
+        (height, rock_amt * constants::ROCK_COLOR + sand_amt * constants::SAND_COLOR + humus_amt * constants::HUMUS_COLOR)
+    }
 }
 
 // converts (x,y) index in 2D vec into an index into a flattened 1D vec
 fn get_flat_index(x: i32, y: i32) -> i32 {
     y * constants::AREA_SIDE_LENGTH as i32 + x
+}
+
+
+#[cfg(test)]
+mod tests {
+    use float_cmp::approx_eq;
+    use nalgebra::Vector3;
+
+    use super::{CellIndex, Ecosystem};
+    use crate::{
+        constants,
+        ecology::{self, Bushes, Cell, Trees}, render::EcosystemRenderable,
+    };
+
+    #[test]
+    fn test_get_color() {
+        let mut cell = Cell::init();
+        cell.add_rocks(1.0);
+        let mut eco = Ecosystem { cells : vec![vec![cell.clone()]], tets: vec![] };
+        let actual: Vector3<f32> = EcosystemRenderable::get_color(&eco, CellIndex::new(0, 0));
+        let expected: Vector3<f32> = constants::ROCK_COLOR;
+        assert!(
+            actual == expected,
+            "Expected color {expected}, actual color {actual}"
+        );
+        cell.add_sand(1.0);
+        eco[CellIndex::new(0,0)] = cell;
+        let actual: Vector3<f32> = EcosystemRenderable::get_color(&eco, CellIndex::new(0, 0));
+        let expected: Vector3<f32> = (constants::SAND_COLOR + constants::ROCK_COLOR) / 2.0;
+        assert!(
+            actual == expected,
+            "Expected color {expected}, actual color {actual}"
+        );
+    }
 }

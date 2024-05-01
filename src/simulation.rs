@@ -55,10 +55,10 @@ impl Simulation {
         }
 
         // println!("humus heights {humus_heights:?}");
-        // let index = CellIndex::new(2, 2);
-        // let cell = &self.ecosystem.ecosystem[index];
-        // let rocks_height = cell.get_rock_height();
-        // println!("rocks_height {rocks_height}");
+        let index = CellIndex::new(1, 1);
+        let cell = &self.ecosystem.ecosystem[index];
+        // println!("rocks_height {}", cell.get_rock_height());
+        println!("humus_height {}", cell.get_humus_height());
 
         self.ecosystem.update_vertices();
     }
