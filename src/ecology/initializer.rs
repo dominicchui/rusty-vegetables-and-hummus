@@ -41,20 +41,19 @@ impl Ecosystem {
 
         // add humus
         let mut humus_heights = [[0.0; constants::AREA_SIDE_LENGTH]; constants::AREA_SIDE_LENGTH];
-        for i in 0..constants::AREA_SIDE_LENGTH {
-            for j in 0..constants::AREA_SIDE_LENGTH {
+        for (i, heights) in humus_heights.iter_mut().enumerate() {
+            for (j, height) in heights.iter_mut().enumerate() {
                 let index = CellIndex::new(i, j);
                 let slope = ecosystem.get_slope_at_point(index);
                 let humus_height = Self::get_initial_humus_height(slope);
-                humus_heights[i][j] = humus_height;
+                *height = humus_height;
             }
         }
-        for i in 0..constants::AREA_SIDE_LENGTH {
-            for j in 0..constants::AREA_SIDE_LENGTH {
+        for (i, heights) in humus_heights.iter().enumerate() {
+            for (j, height) in heights.iter().enumerate() {
                 let index = CellIndex::new(i, j);
                 let cell = &mut ecosystem[index];
-                cell.add_humus(humus_heights[i][j]);
-                println!("humus_height {}", humus_heights[i][j]);
+                cell.add_humus(*height);
             }
         }
 

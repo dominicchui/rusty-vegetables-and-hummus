@@ -1,3 +1,4 @@
+use export::output_terrain_map;
 use nalgebra::Vector3;
 use render::EcosystemRenderable;
 use sdl2::{
@@ -11,6 +12,7 @@ mod camera;
 mod constants;
 mod ecology; // apparently naming this "ecosystem" breaks rust analyzer :(
 mod events;
+mod export;
 mod render;
 mod render_gl;
 mod simulation;
@@ -142,11 +144,14 @@ fn main() {
 
         if new_keys.contains(&Keycode::T) {
             paused = !paused;
+        } else if new_keys.contains(&Keycode::P) {
+            output_terrain_map(&simulation.ecosystem.ecosystem);
         }
         let dirs = keys.into_iter().filter_map(convert_key_to_dir).collect();
         move_camera(&mut simulation.ecosystem, dirs, elapsed_secs as f32);
 
         window.gl_swap_window();
+        
     }
 }
 
