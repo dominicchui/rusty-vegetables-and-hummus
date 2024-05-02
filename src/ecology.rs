@@ -1,5 +1,7 @@
 use itertools::Itertools;
 use nalgebra::Vector3;
+use rand::Rng;
+use noise::{core::perlin, NoiseFn, Perlin, Seedable};
 
 use crate::constants;
 use std::{
@@ -168,10 +170,67 @@ impl Ecosystem {
         }
     }
 
+    // pub fn init_test() -> Self {
+    //     let mut ecosystem = Self::init();
+    //     let neighbor_height = 101.0 + f32::sqrt(3.0) / 2.0;
+    //     let c_i = 2;
+
+        // let trees = Trees {
+        //     number_of_plants: 15,
+        //     plant_height_sum: 150.0,
+        //     plant_age_sum: 10.0,
+        // };
+
+    //     let center = &mut ecosystem[CellIndex::new(c_i, c_i)];
+    //     let bedrock = center.bedrock.as_mut().unwrap();
+    //     bedrock.height = 103.0;
+    //     // center.trees = Some(trees.clone());
+
+    //     let up = &mut ecosystem[CellIndex::new(c_i, c_i - 1)];
+    //     let bedrock = up.bedrock.as_mut().unwrap();
+    //     bedrock.height = neighbor_height;
+    //     // up.trees = Some(trees.clone());
+
+    //     let down = &mut ecosystem[CellIndex::new(c_i, c_i + 1)];
+    //     let bedrock = down.bedrock.as_mut().unwrap();
+    //     bedrock.height = neighbor_height;
+    //     // down.trees = Some(trees.clone());
+
+    //     let left = &mut ecosystem[CellIndex::new(c_i - 1, c_i)];
+    //     let bedrock = left.bedrock.as_mut().unwrap();
+    //     bedrock.height = neighbor_height;
+    //     left.trees = Some(trees.clone());
+
+    //     let right = &mut ecosystem[CellIndex::new(c_i + 1, c_i)];
+    //     let bedrock = right.bedrock.as_mut().unwrap();
+    //     bedrock.height = neighbor_height;
+    //     // right.trees = Some(trees.clone());
+
+    //     let up_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i - 1)];
+    //     let bedrock = up_left.bedrock.as_mut().unwrap();
+    //     bedrock.height = neighbor_height;
+    //     up_left.trees = Some(trees.clone());
+
+    //     let up_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i - 1)];
+    //     let bedrock = up_right.bedrock.as_mut().unwrap();
+    //     bedrock.height = neighbor_height;
+    //     // up_right.trees = Some(trees.clone());
+
+    //     let down_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i + 1)];
+    //     let bedrock = down_left.bedrock.as_mut().unwrap();
+    //     bedrock.height = neighbor_height;
+    //     down_left.trees = Some(trees.clone());
+
+    //     let down_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i + 1)];
+    //     let bedrock = down_right.bedrock.as_mut().unwrap();
+    //     bedrock.height = neighbor_height;
+    //     // down_right.trees = Some(trees.clone());
+
+    //     ecosystem
+    // }
+
     pub fn init_test() -> Self {
         let mut ecosystem = Self::init();
-        let neighbor_height = 101.0 + f32::sqrt(3.0) / 2.0;
-        let c_i = 2;
 
         let trees = Trees {
             number_of_plants: 15,
@@ -179,50 +238,43 @@ impl Ecosystem {
             plant_age_sum: 10.0,
         };
 
-        let center = &mut ecosystem[CellIndex::new(c_i, c_i)];
-        let bedrock = center.bedrock.as_mut().unwrap();
-        bedrock.height = 103.0;
-        // center.trees = Some(trees.clone());
+        let noise = Perlin::new(1);
+        let mut perlin_overlay: [[f32; 100]; 100] = [[0.0; 100]; 100];
 
-        let up = &mut ecosystem[CellIndex::new(c_i, c_i - 1)];
-        let bedrock = up.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        // up.trees = Some(trees.clone());
+        for i in 0..100 {
+            for j in 0..100 {
+                let mut rng = rand::thread_rng();
+                let choice: f32 = rng.gen();
 
-        let down = &mut ecosystem[CellIndex::new(c_i, c_i + 1)];
-        let bedrock = down.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        // down.trees = Some(trees.clone());
+                let cell = &mut ecosystem[CellIndex::new(i, j)];
+                let bedrock = cell.bedrock.as_mut().unwrap();
 
-        let left = &mut ecosystem[CellIndex::new(c_i - 1, c_i)];
-        let bedrock = left.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        left.trees = Some(trees.clone());
+                let x = (5.0*((i as f32)) - 250.0).abs()-150.0;
+                let h_func = 30.0*(1.0/(1.0+((1.03 as f32).powf(-x)))) + 1.0*choice;
+                let sample_noise = noise.get([i as f64, j as f64]);
 
-        let right = &mut ecosystem[CellIndex::new(c_i + 1, c_i)];
-        let bedrock = right.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        // right.trees = Some(trees.clone());
+                bedrock.height = h_func;
 
-        let up_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i - 1)];
-        let bedrock = up_left.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        up_left.trees = Some(trees.clone());
+                perlin_overlay[i][j] = sample_noise as f32;
 
-        let up_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i - 1)];
-        let bedrock = up_right.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        // up_right.trees = Some(trees.clone());
+                cell.trees = Some(trees.clone());
+            }
+        }
 
-        let down_left = &mut ecosystem[CellIndex::new(c_i - 1, c_i + 1)];
-        let bedrock = down_left.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        down_left.trees = Some(trees.clone());
+        for i in 2..98 {
+            for j in 2..98 {
+                let mut output: f32 = 0.0;
 
-        let down_right = &mut ecosystem[CellIndex::new(c_i + 1, c_i + 1)];
-        let bedrock = down_right.bedrock.as_mut().unwrap();
-        bedrock.height = neighbor_height;
-        // down_right.trees = Some(trees.clone());
+                for a in 0..5 {
+                    for b in 0..5 {
+                        output = output + (perlin_overlay[((a - 2) as i32).abs() as usize][((b - 2) as i32).abs() as usize]);
+                    }
+                }
+
+                let c_index = CellIndex::new(i, j);
+                ecosystem[c_index].add_bedrock(output);
+            }
+        }
 
         ecosystem
     }

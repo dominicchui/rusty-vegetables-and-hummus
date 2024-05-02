@@ -3,7 +3,7 @@ pub(crate) const SCREEN_HEIGHT: usize = 1000;
 pub(crate) const SPEED: f32 = 10.0;
 
 // https://extension.psu.edu/calculating-the-green-weight-of-wood-species
-pub(crate) const AREA_SIDE_LENGTH: usize = 5; // in cells
+pub(crate) const AREA_SIDE_LENGTH: usize = 100; // in cells
 pub(crate) const CELL_SIDE_LENGTH: f32 = 10.0; // in meters
 pub(crate) const DEFAULT_BEDROCK_HEIGHT: f32 = 100.0; // in meters
 
@@ -26,3 +26,14 @@ pub(crate) const LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME: f32 = 4.0; //4.0; // m^3
 // https://www.sciencedirect.com/science/article/pii/S2351989421002973
 // density of highland grasses
 pub(crate) const GRASS_DENSITY: f32 = 1.0; // kg/m^3
+
+pub(crate) const AVERAGE_MONTHLY_RAINFALL: [f32; 12] = [
+    96.0, 81.0, 111.0, 99.0, 86.0, 91.0, 87.0, 103.0, 93.0, 106.0, 88.0, 110.0,
+]; // in mm per month
+
+pub(crate) const PER_CELL_RAINFALL: f32 = 1151.0;
+
+//Sediment constants idk ask stupid Musgrave
+pub(crate) const KC: f32 = 5.0;
+pub(crate) const KD: f32 = 0.1;
+pub(crate) const KS: f32 = 0.3;

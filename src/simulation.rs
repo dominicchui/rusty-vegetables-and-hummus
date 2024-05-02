@@ -37,15 +37,26 @@ impl Simulation {
         // }
         // println!("average height {}", total_height / num_cells as f32);
 
-        for i in vec {
-            // apply random event (todo randomize)
-            let index = CellIndex::get_from_flat_index(i);
-            Events::apply_event(Events::Lightning, &mut self.ecosystem.ecosystem, index);
-            Events::apply_event(Events::ThermalStress, &mut self.ecosystem.ecosystem, index);
-            Events::apply_event(Events::SandSlide, &mut self.ecosystem.ecosystem, index);
-            Events::apply_event(Events::RockSlide, &mut self.ecosystem.ecosystem, index);
-            Events::apply_event(Events::HumusSlide, &mut self.ecosystem.ecosystem, index);
+        // for i in vec {
+        //     // apply random event (todo randomize)
+        //     let index = CellIndex::get_from_flat_index(i);
+        //     // Events::apply_event(Events::Lightning, &mut self.ecosystem.ecosystem, index);
+        //     // Events::apply_event(Events::ThermalStress, &mut self.ecosystem.ecosystem, index);
+        //     // Events::apply_event(Events::SandSlide, &mut self.ecosystem.ecosystem, index);
+        //     // Events::apply_event(Events::RockSlide, &mut self.ecosystem.ecosystem, index);
+        //     // Events::apply_event(Events::HumusSlide, &mut self.ecosystem.ecosystem, index);
+        //     Events::apply_event(Events::Rainfall, &mut self.ecosystem.ecosystem, index);
+        // }
+
+        let select_cell = vec.get(0);
+        let us: usize;
+
+        match select_cell {
+            Some(x) => us = *x,
+            None => us = 0
         }
+
+        Events::apply_event(Events::Rainfall, &mut self.ecosystem.ecosystem, CellIndex::get_from_flat_index(us));
 
         let index = CellIndex::new(2, 2);
         let cell = &self.ecosystem.ecosystem[index];
