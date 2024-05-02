@@ -272,7 +272,7 @@ impl Ecosystem {
                 }
 
                 let c_index = CellIndex::new(i, j);
-                ecosystem[c_index].add_bedrock(output);
+                ecosystem[c_index].add_bedrock(output / 25.0);
             }
         }
 
