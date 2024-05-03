@@ -2,7 +2,7 @@ use gl::types::GLuint;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 
-use crate::{constants, ecology::CellIndex, events::Events, render::EcosystemRenderable};
+use crate::{constants, ecology::{CellIndex, Ecosystem}, events::Events, import::import_height_map, render::EcosystemRenderable};
 
 pub struct Simulation {
     pub ecosystem: EcosystemRenderable,
@@ -10,8 +10,15 @@ pub struct Simulation {
 
 impl Simulation {
     pub fn init() -> Self {
+        let ecosystem = Ecosystem::init_standard();
         Simulation {
-            ecosystem: EcosystemRenderable::init(),
+            ecosystem: EcosystemRenderable::init(ecosystem),
+        }
+    }
+
+    pub fn init_with_height_map(path: &str) -> Self {
+        Simulation {
+            ecosystem: import_height_map(path),
         }
     }
 

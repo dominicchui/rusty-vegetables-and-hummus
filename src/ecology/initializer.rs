@@ -60,6 +60,18 @@ impl Ecosystem {
         ecosystem
     }
 
+    pub fn init_with_heights(heights: [f32; constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH]) -> Self {
+        let mut ecosystem = Self::init();
+        for (index, height) in heights.iter().enumerate() {
+            let j = index / constants::AREA_SIDE_LENGTH;
+            let i = index - j * constants::AREA_SIDE_LENGTH;
+            let cell = &mut ecosystem[CellIndex::new(i, j)];
+            cell.add_bedrock(*height);
+        }
+        ecosystem
+    }
+
+
     pub fn init_test() -> Self {
         let mut ecosystem = Self::init();
         let c_i = 2;

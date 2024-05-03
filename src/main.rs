@@ -1,4 +1,4 @@
-use export::output_terrain_map;
+use export::export_maps;
 use nalgebra::Vector3;
 use render::EcosystemRenderable;
 use sdl2::{
@@ -13,6 +13,7 @@ mod constants;
 mod ecology; // apparently naming this "ecosystem" breaks rust analyzer :(
 mod events;
 mod export;
+mod import;
 mod render;
 mod render_gl;
 mod simulation;
@@ -70,7 +71,8 @@ fn main() {
     .unwrap();
     let shader_program = render_gl::Program::from_shaders(&[vert_shader, frag_shader]).unwrap();
 
-    let mut simulation = Simulation::init();
+    // let mut simulation = Simulation::init();
+    let mut simulation = Simulation::init_with_height_map("../resources/height_maps/berkshires.png");
 
     // main loop
     let mut count = 0;
@@ -145,7 +147,7 @@ fn main() {
         if new_keys.contains(&Keycode::T) {
             paused = !paused;
         } else if new_keys.contains(&Keycode::P) {
-            output_terrain_map(&simulation.ecosystem.ecosystem);
+            export_maps(&simulation.ecosystem.ecosystem, count-1);
         }
         let dirs = keys.into_iter().filter_map(convert_key_to_dir).collect();
         move_camera(&mut simulation.ecosystem, dirs, elapsed_secs as f32);

@@ -27,8 +27,8 @@ pub(crate) struct EcosystemRenderable {
 }
 
 impl EcosystemRenderable {
-    pub fn init() -> Self {
-        let mut ecosystem = Ecosystem::init_standard();
+    pub fn init(mut ecosystem: Ecosystem) -> Self {
+        // let mut ecosystem = Ecosystem::init_standard();
         ecosystem.recompute_sunlight();
 
         // initialize based on the cell grid of the ecosystem
@@ -586,13 +586,13 @@ impl EcosystemRenderable {
         if let Some(grass) = &ecosystem[index].grasses {
             // use sigmoid interpolation
             // 1/(1+e^-(7x+4))
-            let grass_constant = 0.4;
+            let grass_constant = 0.7;
             let alpha = 1.0
                 / (f32::powf(
                     std::f32::consts::E,
                     -7.0 * (grass.coverage_density * grass_constant) + 4.0,
                 ));
-            color = color * (1.0 - alpha) + constants::GRASS_COLOR * alpha;
+            // color = color * (1.0 - alpha) + constants::GRASS_COLOR * alpha;
         }
 
         // let mut top_biomass = self[index].estimate_bush_biomass() + self[index].estimate_tree_biomass();
@@ -607,7 +607,7 @@ impl EcosystemRenderable {
         let cell = &ecosystem[index];
         let mut rock_amt = cell.get_rock_height();
         let mut sand_amt = cell.get_sand_height();
-        let mut humus_amt = cell.get_humus_height() * 30.0; // increase humus color weighting
+        let mut humus_amt = cell.get_humus_height() * 10.0; // increase humus color weighting
         let height = rock_amt + sand_amt + humus_amt;
         // println!("rocks_height {rock_amt}");
         // println!("sand_amt {sand_amt}");

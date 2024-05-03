@@ -5,7 +5,7 @@ pub(crate) const SCREEN_HEIGHT: usize = 1000;
 pub(crate) const SPEED: f32 = AREA_SIDE_LENGTH as f32;
 
 // https://extension.psu.edu/calculating-the-green-weight-of-wood-species
-pub(crate) const AREA_SIDE_LENGTH: usize = 10; // in cells
+pub(crate) const AREA_SIDE_LENGTH: usize = 100; // in cells
 pub(crate) const CELL_SIDE_LENGTH: f32 = 10.0; // in meters
 pub(crate) const DEFAULT_BEDROCK_HEIGHT: f32 = 100.0; // in meters
 
@@ -35,7 +35,7 @@ pub(crate) const SAND_COLOR: Vector3<f32> = Vector3::new(0.76078, 0.69804, 0.501
 pub(crate) const HUMUS_COLOR: Vector3<f32> = Vector3::new(0.46274, 0.33333, 0.16863);
 pub(crate) const TREES_COLOR: Vector3<f32> = Vector3::new(0.22745, 0.30980, 0.24706);
 pub(crate) const BUSHES_COLOR: Vector3<f32> = Vector3::new(0.2, 0.2, 0.2);
-pub(crate) const GRASS_COLOR: Vector3<f32> = Vector3::new(0.4, 0.7, 0.1);
+pub(crate) const GRASS_COLOR: Vector3<f32> = Vector3::new(0.246, 0.605, 0.043);
 pub(crate) const DEAD_COLOR: Vector3<f32> = Vector3::new(0.25098, 0.16078, 0.01961);
 
 //pub(crate) const AVERAGE_TEMPERATURE: f32 = 15.0; // in celsius
