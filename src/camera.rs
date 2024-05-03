@@ -68,7 +68,7 @@ impl Camera {
         if self.m_view_dirty {
             let pos: Vector3<f32> = self.m_position;
             let look: Vector3<f32> = self.m_look;
-            let up: Vector3<f32> = Vector3::new(0.0, 1.0, 0.0);
+            let up: Vector3<f32> = Vector3::new(0.0, 0.0, 1.0);
 
             let mtrans = Matrix4::new(
                 1.0, 0.0, 0.0, -pos.x, 0.0, 1.0, 0.0, -pos.y, 0.0, 0.0, 1.0, -pos.z, 0.0, 0.0, 0.0,

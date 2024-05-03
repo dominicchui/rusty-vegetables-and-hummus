@@ -11,10 +11,7 @@ const BEDROCK_FRACTURE_HEIGHT: f32 = 1.0;
 use rand::Rng;
 
 use super::Events;
-use crate::{
-    constants,
-    ecology::{Cell, CellIndex, Ecosystem},
-};
+use crate::ecology::{Cell, CellIndex, Ecosystem};
 
 impl Events {
     pub(crate) fn apply_thermal_stress_event(
@@ -22,12 +19,12 @@ impl Events {
         index: CellIndex,
     ) -> Option<(Events, CellIndex)> {
         let fracture_probability = Self::compute_thermal_fracture_probability(ecosystem, index);
-        println!("fracture_probability {fracture_probability}");
+        // println!("fracture_probability {fracture_probability}");
         let mut rng = rand::thread_rng();
         let rand: f32 = rng.gen();
 
         if rand < fracture_probability {
-            println!("fracture!");
+            // println!("fracture!");
             // fracture some bedrock and convert to rocks
             let cell = &mut ecosystem[index];
             cell.remove_bedrock(BEDROCK_FRACTURE_HEIGHT);
@@ -57,7 +54,7 @@ impl Events {
         }
         let cell = &ecosystem[index];
         let vegetation_density = cell.estimate_vegetation_density();
-        let granular_height = cell.get_height_of_sand() + cell.get_height_of_humus();
+        let granular_height = cell.get_sand_height() + cell.get_humus_height();
         FRACTURE_CONSTANT * delta_t * max_slope
             / (1.0
                 + GRANULAR_DAMPENING_CONSTANT * granular_height
@@ -68,10 +65,8 @@ impl Events {
 #[cfg(test)]
 mod tests {
     use float_cmp::approx_eq;
-    use nalgebra::Vector3;
 
     use crate::{
-        constants,
         ecology::{Bushes, Cell, CellIndex, Ecosystem, Grasses, Trees},
         events::{
             thermal_stress::{GRANULAR_DAMPENING_CONSTANT, VEGETATION_DAMPENING_CONSTANT},

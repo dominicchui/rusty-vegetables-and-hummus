@@ -1,3 +1,11 @@
+// LIGHTNING
+// based on ~10 lightning strikes per km per year
+// https://www.sciencedirect.com/science/article/pii/S0169555X13003929
+const DESIRED_MAX_STRIKES: f32 = 20.0; // strikes per squar kilometer
+const MAX_LIGHTNING_PROBABILITY: f32 =
+    constants::AREA * DESIRED_MAX_STRIKES / constants::NUM_CELLS as f32;
+const LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME: f32 = 4.0; // m^3
+
 use super::Events;
 use crate::{
     constants,
@@ -22,6 +30,7 @@ impl Events {
         let mut rng = rand::thread_rng();
         let rand: f32 = rng.gen();
         if rand < strike_probability {
+            // println!("Lightning at {index}");
             let cell = &mut ecosystem[index];
 
             // kill all vegetation in the cell
@@ -30,8 +39,7 @@ impl Events {
             Self::kill_grasses(cell);
 
             // destroy some bedrock and scatter as rocks and sand to nearby cells
-            let bedrock = &mut cell.bedrock.as_mut().unwrap();
-            let lost_height = constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME
+            let lost_height = LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME
                 / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
             cell.remove_bedrock(lost_height);
 
@@ -39,8 +47,7 @@ impl Events {
             // simplifying assumption 2: distribute volume evenly to 8 neighbors and cell (instead of being based on slope and relative elevation)
             let neighbors = Cell::get_neighbors(&index);
             let num_affected_cells = neighbors.len() + 1;
-            let volume_per_cell =
-                constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME / num_affected_cells as f32;
+            let volume_per_cell = LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME / num_affected_cells as f32;
             let height_per_cell =
                 volume_per_cell / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
 
@@ -68,12 +75,11 @@ impl Events {
         let curvature = ecosystem.estimate_curvature(index);
         // println!("index {index}, curvature {curvature}");
 
-        let max_prob = 1.0;
         let scaling_factor = 1.0;
         let min_curve = 4.0;
         let exp = scaling_factor * ((-curvature) - min_curve);
         // println!("exp {exp}");
-        max_prob * f32::min(1.0, (std::f32::consts::E).powf(exp))
+        MAX_LIGHTNING_PROBABILITY * f32::min(1.0, (std::f32::consts::E).powf(exp))
     }
 }
 
@@ -84,7 +90,7 @@ mod tests {
     use crate::{
         constants,
         ecology::{Cell, CellIndex, Ecosystem, Trees},
-        events::Events,
+        events::{lightning::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME, Events},
     };
 
     #[test]
@@ -116,76 +122,66 @@ mod tests {
         assert!(trees.is_none());
 
         // assert bedrock is decreased
-        assert!(cell.bedrock.is_some());
         let expected_height = constants::DEFAULT_BEDROCK_HEIGHT
-            - constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME
+            - LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME
                 / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
-        let actual_height = cell.get_height_of_bedrock();
+        let actual_height = cell.get_bedrock_height();
         assert_eq!(actual_height, expected_height,);
 
         // assert neighbors and self have increase in rocks and sand
         let neighbors = Cell::get_neighbors(&index);
         let num_neighbors = neighbors.len() + 1;
-        let volume_per_cell =
-            constants::LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME / (num_neighbors + 1) as f32;
+        let volume_per_cell = LIGHTNING_BEDROCK_DISPLACEMENT_VOLUME / (num_neighbors + 1) as f32;
         let height_per_cell =
             volume_per_cell / (constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH);
 
-        let rock_layer = &cell.rock;
-        assert!(rock_layer.is_some());
         assert!(
             approx_eq!(
                 f32,
-                cell.get_height_of_rock(),
+                cell.get_rock_height(),
                 height_per_cell / 2.0,
                 epsilon = 0.01
             ),
             "Expected {}, actual {}",
             height_per_cell / 2.0,
-            cell.get_height_of_rock(),
+            cell.get_rock_height(),
         );
 
-        let sand_layer = &cell.sand;
-        assert!(sand_layer.is_some());
         assert!(
             approx_eq!(
                 f32,
-                cell.get_height_of_sand(),
+                cell.get_sand_height(),
                 height_per_cell / 2.0,
                 epsilon = 0.01
             ),
             "Expected {}, actual {}",
             height_per_cell / 2.0,
-            cell.get_height_of_sand()
+            cell.get_sand_height()
         );
 
         for neighbor_index in neighbors.as_array().into_iter().flatten() {
             let neighbor = &ecosystem[neighbor_index];
-            let rock_layer = &neighbor.rock;
-            assert!(rock_layer.is_some());
             assert!(
                 approx_eq!(
                     f32,
-                    neighbor.get_height_of_rock(),
+                    neighbor.get_rock_height(),
                     height_per_cell / 2.0,
                     epsilon = 0.01
                 ),
                 "Expected {}, actual {}",
                 height_per_cell / 2.0,
-                neighbor.get_height_of_rock(),
+                neighbor.get_rock_height(),
             );
-            let sand_layer = &neighbor.sand;
-            assert!(sand_layer.is_some());
             assert!(
                 approx_eq!(
                     f32,
-                    cell.get_height_of_sand(),
+                    cell.get_sand_height(),
                     height_per_cell / 2.0,
                     epsilon = 0.01
                 ),
                 "Expected {}, actual {}",
                 height_per_cell / 2.0,
-                cell.get_height_of_sand()
+                cell.get_sand_height()
             );
         }
     }

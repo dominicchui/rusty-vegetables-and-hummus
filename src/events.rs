@@ -3,6 +3,7 @@ mod lightning;
 mod rock_slide;
 mod sand_slide;
 mod thermal_stress;
+mod vegetation;
 mod rainfall;
 
 use nalgebra::Vector3;
@@ -21,7 +22,9 @@ pub(crate) enum Events {
     SandSlide,
     HumusSlide,
     Fire,
-    Vegetation,
+    VegetationTrees,
+    VegetationBushes,
+    VegetationGrasses,
 }
 
 impl Events {
@@ -37,7 +40,9 @@ impl Events {
                 Events::SandSlide => Self::apply_sand_slide_event(ecosystem, index),
                 Events::HumusSlide => Self::apply_humus_slide_event(ecosystem, index),
                 Events::Fire => todo!(),
-                Events::Vegetation => todo!(),
+                Events::VegetationTrees => Self::apply_trees_event(ecosystem, index),
+                Events::VegetationBushes => Self::apply_bushes_event(ecosystem, index),
+                Events::VegetationGrasses => Self::apply_grasses_event(ecosystem, index),
             };
         }
     }
@@ -98,8 +103,7 @@ mod tests {
     use nalgebra::Vector3;
 
     use crate::{
-        constants,
-        ecology::{Cell, CellIndex, Ecosystem, Trees},
+        ecology::{Cell, Trees},
         events::Events,
     };
 
@@ -110,19 +114,8 @@ mod tests {
             plant_height_sum: 30.0,
             plant_age_sum: 10.0,
         };
-        let mut cell = Cell {
-            soil_moisture: 0.0,
-            sunlight: 0.0,
-            temperature: 0.0,
-            bedrock: None,
-            rock: None,
-            sand: None,
-            humus: None,
-            trees: Some(trees),
-            bushes: None,
-            grasses: None,
-            dead_vegetation: None,
-        };
+        let mut cell = Cell::init();
+        cell.trees = Some(trees);
         let biomass = cell.estimate_tree_biomass();
 
         Events::kill_trees(&mut cell);
@@ -130,12 +123,12 @@ mod tests {
         let trees = &cell.trees;
         assert!(trees.is_none());
 
-        let dead_vegetation = &cell.dead_vegetation;
-        assert!(dead_vegetation.is_some());
-        let dead_vegetation = &dead_vegetation.as_ref().unwrap();
-        let expected = dead_vegetation.biomass;
+        let dead_vegetation_biomass = cell.get_dead_vegetation_biomass();
         let actual = biomass;
-        assert!(expected == actual, "Expected {expected}, actual {actual}");
+        assert!(
+            dead_vegetation_biomass == actual,
+            "Expected {dead_vegetation_biomass}, actual {actual}"
+        );
 
         // add more trees and kill them
         let trees = Trees {
@@ -151,12 +144,12 @@ mod tests {
         let trees = &mut cell.trees;
         assert!(trees.is_none());
 
-        let dead_vegetation = cell.dead_vegetation;
-        assert!(dead_vegetation.is_some());
-        let dead_vegetation = dead_vegetation.unwrap();
-        let expected = dead_vegetation.biomass;
+        let dead_vegetation_biomass = cell.get_dead_vegetation_biomass();
         let actual = biomass + biomass_2;
-        assert!(expected == actual, "Expected {expected}, actual {actual}");
+        assert!(
+            dead_vegetation_biomass == actual,
+            "Expected {dead_vegetation_biomass}, actual {actual}"
+        );
     }
 
     #[test]
