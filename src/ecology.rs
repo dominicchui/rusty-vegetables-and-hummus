@@ -229,7 +229,7 @@ impl Ecosystem {
     //     ecosystem
     // }
 
-    pub fn init_test() -> Self {
+    pub fn init_test_ianlandscape() -> Self {
         let mut ecosystem = Self::init();
 
         let trees = Trees {
@@ -249,7 +249,7 @@ impl Ecosystem {
                 let cell = &mut ecosystem[CellIndex::new(i, j)];
                 let bedrock = cell.bedrock.as_mut().unwrap();
 
-                let x = (5.0*((i as f32)) - 250.0).abs()-150.0;
+                let x = (5.0*(((((i as f32)+(j as f32))/2.0))) - 250.0).abs()-150.0;
                 let h_func = 30.0*(1.0/(1.0+((1.03 as f32).powf(-x)))) + 1.0*choice;
                 let sample_noise = noise.get([i as f64, j as f64]);
 

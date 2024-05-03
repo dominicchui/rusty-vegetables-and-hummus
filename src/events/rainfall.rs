@@ -11,17 +11,16 @@ use rand::distributions::WeightedIndex;
 
 impl Events {
     pub(crate) fn apply_rainfall_event(ecosystem: &mut Ecosystem, index: CellIndex) -> Option<(Events, CellIndex)> {
-        //let water_level: f32 = constants::PER_CELL_RAINFALL;
-        let water_level: f32 = 10.0;
+        let water_level: f32 = 0.001*ecosystem[index].get_height();
 
         //TODO: Account for plants intercepting rainfall
 
-        Self::runoff(ecosystem, index, water_level);
+        Self::runoff(ecosystem, index, water_level, 0);
 
         None
     }
 
-    fn runoff(ecosystem: &mut Ecosystem, index: CellIndex, water_level: f32) -> () {
+    fn runoff(ecosystem: &mut Ecosystem, index: CellIndex, water_level: f32, steps: usize) -> () {
         let neighbors: [Option<CellIndex>; 8] = Cell::get_neighbors(&index).as_array();
         const NUM_NEIGHBORS: usize = 8;
 
@@ -62,7 +61,7 @@ impl Events {
 
             let cur_cell = &mut ecosystem[index];
 
-            println!("Moved water from {index} to {next_cell_index}\n");
+            println!("Moved water from {index} to {next_cell_index}");
 
             //ecosystem[next_cell].soil_moisture += chosen_slope;
             
@@ -99,6 +98,8 @@ impl Events {
                 //Amount eroded
                 let mut eroded = constants::KS*(sediment_capacity-cur_cell_sediment);
 
+                println!("Eroded {eroded} of bedrock");
+
                 if (eroded > cur_cell.get_height_of_bedrock()) {
                     eroded = cur_cell.get_height_of_bedrock();
                 }
@@ -117,10 +118,10 @@ impl Events {
                 next_cell.add_rocks(r_amt + eroded);
             }
 
-            let water_passed: f32 = water_level - 1.0;
-
-            if (water_passed > 0.0) {
-                Self::runoff(ecosystem, next_cell_index, water_passed);
+            if (steps < 100) {
+                Self::runoff(ecosystem, next_cell_index, water_level, steps + 1);
+            } else {
+                println!("Finished");
             }
         }
     }
