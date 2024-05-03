@@ -4,6 +4,7 @@ mod rock_slide;
 mod sand_slide;
 mod thermal_stress;
 mod vegetation;
+mod rainfall;
 
 use nalgebra::Vector3;
 
@@ -32,7 +33,7 @@ impl Events {
         let mut event_option = Some((self, index));
         while let Some((event, index)) = event_option {
             event_option = match event {
-                Events::Rainfall => todo!(),
+                Events::Rainfall => Self::apply_rainfall_event(ecosystem, index),
                 Events::ThermalStress => Self::apply_thermal_stress_event(ecosystem, index),
                 Events::Lightning => Self::apply_lightning_event(ecosystem, index),
                 Events::RockSlide => Self::apply_rock_slide_event(ecosystem, index),

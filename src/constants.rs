@@ -5,7 +5,7 @@ pub(crate) const SCREEN_HEIGHT: usize = 1000;
 pub(crate) const SPEED: f32 = AREA_SIDE_LENGTH as f32;
 
 // https://extension.psu.edu/calculating-the-green-weight-of-wood-species
-pub(crate) const AREA_SIDE_LENGTH: usize = 40; // in cells
+pub(crate) const AREA_SIDE_LENGTH: usize = 100; // in cells
 pub(crate) const CELL_SIDE_LENGTH: f32 = 10.0; // in meters
 pub(crate) const DEFAULT_BEDROCK_HEIGHT: f32 = 100.0; // in meters
 
@@ -53,3 +53,10 @@ pub(crate) const AVERAGE_MONTHLY_RAINFALL: [f32; 12] = [
 pub(crate) const PERCENT_SUNNY_DAYS: f32 = 0.75;
 
 pub(crate) const DEFAULT_HUMUS_HEIGHT: f32 = 0.5;
+
+pub(crate) const PER_CELL_RAINFALL: f32 = 1151.0;
+
+//Sediment constants idk ask stupid Musgrave
+pub(crate) const KC: f32 = 5.0;
+pub(crate) const KD: f32 = 0.1;
+pub(crate) const KS: f32 = 0.3;

@@ -40,6 +40,7 @@ impl Simulation {
                 Events::VegetationTrees,
                 Events::VegetationBushes,
                 Events::VegetationGrasses,
+                Events::Rainfall,
             ];
             events.shuffle(&mut thread_rng());
             // println!("Events {events:?}");
@@ -48,18 +49,7 @@ impl Simulation {
             for event in events {
                 Events::apply_event(event, &mut self.ecosystem.ecosystem, index);
             }
-            // let cell = &self.ecosystem.ecosystem[index];
-            // humus_heights.push(cell.get_humus_height());
-            // println!("{index} sunlight {:?}", cell.hours_of_sunlight);
-            // println!("height {}", cell.get_height());
         }
-
-        // println!("humus heights {humus_heights:?}");
-        // let index = CellIndex::new(1, 1);
-        // let cell = &self.ecosystem.ecosystem[index];
-        // println!("rocks_height {}", cell.get_rock_height());
-        // println!("humus_height {}", cell.get_humus_height());
-
         self.ecosystem.update_vertices();
     }
 }
