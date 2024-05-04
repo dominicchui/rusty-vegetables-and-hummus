@@ -32,14 +32,6 @@ impl Simulation {
         for i in vec {
             // apply random event
             let mut events = [
-                Events::Lightning,
-                Events::ThermalStress,
-                Events::SandSlide,
-                Events::RockSlide,
-                Events::HumusSlide,
-                Events::VegetationTrees,
-                Events::VegetationBushes,
-                Events::VegetationGrasses,
                 Events::Rainfall,
             ];
             events.shuffle(&mut thread_rng());

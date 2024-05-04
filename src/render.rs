@@ -29,7 +29,7 @@ pub(crate) struct EcosystemRenderable {
 impl EcosystemRenderable {
     pub fn init() -> Self {
         let mut ecosystem = Ecosystem::init_standard();
-        ecosystem.recompute_sunlight();
+        //ecosystem.recompute_sunlight();
 
         // initialize based on the cell grid of the ecosystem
         let num_cells = constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH;

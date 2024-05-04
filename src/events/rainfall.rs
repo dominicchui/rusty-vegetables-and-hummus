@@ -15,12 +15,12 @@ impl Events {
 
         //TODO: Account for plants intercepting rainfall
 
-        Self::runoff(ecosystem, index, water_level, 0);
+        Self::runoff(ecosystem, index, index, water_level, 0);
 
         None
     }
 
-    fn runoff(ecosystem: &mut Ecosystem, index: CellIndex, water_level: f32, steps: usize) -> () {
+    fn runoff(ecosystem: &mut Ecosystem, index: CellIndex, prev: CellIndex, water_level: f32, steps: usize) -> () {
         let neighbors: [Option<CellIndex>; 8] = Cell::get_neighbors(&index).as_array();
         const NUM_NEIGHBORS: usize = 8;
 
@@ -38,7 +38,7 @@ impl Events {
 
             let slope: f32 = ecosystem.get_slope_between_points(index, neighbor);
 
-            if (slope > 0.0) {
+            if (slope > 0.0 && neighbor != prev) {
                 slopes.push(slope);
                 existing_neighbors.push(neighbor);
             }
@@ -68,9 +68,9 @@ impl Events {
             //Erosion
 
             let sediment_capacity: f32 = constants::KC*water_level; //CS
-            let h_amt = cur_cell.get_height_of_humus();
-            let r_amt = cur_cell.get_height_of_rock();
-            let s_amt = cur_cell.get_height_of_sand();
+            let h_amt = cur_cell.get_humus_height();
+            let r_amt = cur_cell.get_rock_height();
+            let s_amt = cur_cell.get_sand_height();
 
             let cur_cell_sediment: f32 = h_amt+r_amt+s_amt; //SV
 
@@ -100,8 +100,8 @@ impl Events {
 
                 println!("Eroded {eroded} of bedrock");
 
-                if (eroded > cur_cell.get_height_of_bedrock()) {
-                    eroded = cur_cell.get_height_of_bedrock();
+                if (eroded > cur_cell.get_bedrock_height()) {
+                    eroded = cur_cell.get_bedrock_height();
                 }
 
                 //Equation 2
@@ -119,7 +119,7 @@ impl Events {
             }
 
             if (steps < 100) {
-                Self::runoff(ecosystem, next_cell_index, water_level, steps + 1);
+                Self::runoff(ecosystem, next_cell_index, index, water_level, steps + 1);
             } else {
                 println!("Finished");
             }

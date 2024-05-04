@@ -374,6 +374,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "rdrand"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "678054eb77286b51581ba43620cc911abf02758c91f93f479767aed0f90458b2"
+dependencies = [
+ "rand_core 0.3.1",
+]
+
+[[package]]
 name = "safe_arch"
 version = "0.7.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -449,7 +458,9 @@ dependencies = [
  "gl",
  "itertools",
  "nalgebra",
- "rand",
+ "noise",
+ "rand 0.8.5",
+ "random_choice",
  "rayon",
  "sdl2",
 ]
