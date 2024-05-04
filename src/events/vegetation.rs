@@ -63,8 +63,8 @@ impl Vegetation for Trees {
     const MOISTURE_LIMIT_MAX: f32 = 0.8;
 
     // very rough estimates since numbers are hard to find
-    const ILLUMINATION_LIMIT_MIN: f32 = 4.0;
-    const ILLUMINATION_IDEAL_MIN: f32 = 6.0;
+    const ILLUMINATION_LIMIT_MIN: f32 = 1.0;
+    const ILLUMINATION_IDEAL_MIN: f32 = 4.0;
     const ILLUMINATION_IDEAL_MAX: f32 = 10.0;
     const ILLUMINATION_LIMIT_MAX: f32 = 14.0;
 
@@ -563,8 +563,8 @@ impl Events {
         // determines viability from piecewise function evaluating all three of temperature, moisture, and sunlight
         let temperature_viability =
             Self::compute_temperature_viability(ecosystem, index, vegetation, month);
-        let moisture_viability =
-            Self::compute_moisture_viability(ecosystem, index, vegetation, month);
+        let moisture_viability = 0.5; // todo remove
+            //Self::compute_moisture_viability(ecosystem, index, vegetation, month);
         let illumination_viability =
             Self::compute_illumination_viability(ecosystem, index, vegetation, month);
         // println!("type {}", std::any::type_name::<T>());
