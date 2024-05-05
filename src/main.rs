@@ -71,7 +71,6 @@ fn main() {
     .unwrap();
     let shader_program = render_gl::Program::from_shaders(&[vert_shader, frag_shader]).unwrap();
 
-
     // Set up simulation and tracking variables
     // let mut simulation = Simulation::init();
     let mut simulation = Simulation::init_with_height_map(constants::IMPORT_FILE_PATH);
@@ -172,12 +171,15 @@ fn main() {
             // change color mode
             color_mode = ColorMode::Sunlight;
             simulation.change_color_mode(&color_mode);
+        } else if new_keys.contains(&Keycode::Num4) {
+            // change color mode
+            color_mode = ColorMode::SoilMoisture;
+            simulation.change_color_mode(&color_mode);
         }
         let dirs = keys.into_iter().filter_map(convert_key_to_dir).collect();
         move_camera(&mut simulation.ecosystem, dirs, elapsed_secs as f32);
 
         window.gl_swap_window();
-        
     }
 }
 

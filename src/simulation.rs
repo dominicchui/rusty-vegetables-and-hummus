@@ -2,7 +2,13 @@ use gl::types::GLuint;
 use rand::prelude::SliceRandom;
 use rand::thread_rng;
 
-use crate::{constants, ecology::{CellIndex, Ecosystem}, events::Events, import::import_height_map, render::{ColorMode, EcosystemRenderable}};
+use crate::{
+    constants,
+    ecology::{CellIndex, Ecosystem},
+    events::Events,
+    import::import_height_map,
+    render::{ColorMode, EcosystemRenderable},
+};
 
 pub struct Simulation {
     pub ecosystem: EcosystemRenderable,

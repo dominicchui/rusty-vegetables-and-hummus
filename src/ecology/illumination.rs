@@ -1,4 +1,11 @@
-use nalgebra::{Vector3, Vector4};
+use bvh::{
+    aabb::{Aabb, Bounded},
+    bounding_hierarchy::{BHShape, BoundingHierarchy},
+    bvh::Bvh,
+    ray::Ray,
+};
+use nalgebra::{Point3, Vector3, Vector4};
+use ordered_float::OrderedFloat;
 use rayon::iter::{IntoParallelIterator, ParallelIterator};
 
 use crate::constants;
@@ -18,6 +25,7 @@ pub(crate) struct CellTetrahedron {
     normal_two: Vector3<f32>,
     scalar_one: f32,
     scalar_two: f32,
+    node_index: usize,
 }
 
 impl CellTetrahedron {
@@ -32,6 +40,7 @@ impl CellTetrahedron {
             normal_two: Vector3::zeros(),
             scalar_one: 0.0,
             scalar_two: 0.0,
+            node_index: index.x + index.y * constants::AREA_SIDE_LENGTH,
         };
         tet.update(ecosystem);
         tet
@@ -183,6 +192,39 @@ impl CellTetrahedron {
     }
 }
 
+impl Bounded<f32, 3> for CellTetrahedron {
+    fn aabb(&self) -> bvh::aabb::Aabb<f32, 3> {
+        let min_x = self.top_left.x as f32;
+        let max_x = self.top_right.x as f32;
+        let min_y = self.top_left.y as f32;
+        let max_y = self.bottom_right.y as f32;
+        let z_s = [
+            OrderedFloat(self.coordinates[0][2]),
+            OrderedFloat(self.coordinates[1][2]),
+            OrderedFloat(self.coordinates[2][2]),
+            OrderedFloat(self.coordinates[3][2]),
+        ];
+        let min_z = z_s.iter().min().unwrap();
+        let max_z = z_s.iter().max().unwrap();
+        assert!(min_x <= max_x);
+        assert!(min_y <= max_y);
+        assert!(min_z <= max_z);
+        let min: Point3<f32> = Point3::new(min_x, min_y, min_z.into_inner());
+        let max: Point3<f32> = Point3::new(max_x, max_y, max_z.into_inner());
+        Aabb::with_bounds(min, max)
+    }
+}
+
+impl BHShape<f32, 3> for CellTetrahedron {
+    fn set_bh_node_index(&mut self, index: usize) {
+        self.node_index = index;
+    }
+
+    fn bh_node_index(&self) -> usize {
+        self.node_index
+    }
+}
+
 impl Ecosystem {
     // estimates the illumination of the cell based on traced rays from the sun moving across the sky
     // returns average daily hours of direct sunlight
@@ -199,8 +241,16 @@ impl Ecosystem {
         cell.hours_of_sunlight[month]
     }
 
+    pub(crate) fn build_bvh(&mut self) {
+        // build bvh
+        let bvh = Bvh::build_par(&mut self.tets);
+        self.bvh = Some(bvh);
+    }
+
     // recomputes ray traced sunlight for all cells
     pub(crate) fn recompute_sunlight(&mut self) {
+        self.build_bvh();
+
         // two of the edges don't have ray traced computation due to lacking the triangles required
         let mut indices = vec![];
         for i in 0..constants::AREA_SIDE_LENGTH - 1 {
@@ -252,28 +302,29 @@ impl Ecosystem {
             // direction towards the sun in the sky
             // positive X is east, positive Y is north
             let sun_dir = convert_from_spherical_to_cartesian(azimuth, elevation);
+            // println!("sun_dir {sun_dir}");
             // center of the target cell
             let center = self.get_position_of_cell(index) + Vector3::new(0.5, 0.5, 0.0);
             // println!("center {center}");
             // position is "where the sun is" relative to center; essentially model a far away sun at a particular position in the sky
-            let pos = center + sun_dir * 0.01; // + sun_sky_pos * constants::AREA_SIDE_LENGTH as f32 * 100.0;
-                                               // direction is the unit vector from the position of the sun to the target
+            let pos = center + sun_dir * 0.01;
+            // direction is the unit vector from the position of the sun to the target
             let dir = sun_dir;
+            let ray = Ray {
+                origin: pos.into(),
+                direction: dir,
+                inv_direction: -dir,
+            };
             // println!("{index} month {month}");
             // println!("pos {pos}, dir {dir}");
-            for tet in &self.tets {
-                if let Some(_) = tet.has_intersection(pos, dir) {
-                    // // check if intersection is with itself
-                    // // subtract one from length because edges don't have associated tets
-                    // let flat_index = index.x + index.y * (constants::AREA_SIDE_LENGTH - 1);
-                    // // println!("index {index}, flat_index {flat_index}");
-                    // let self_tet = &self.tets[flat_index];
-                    // if let Some(self_t) = self_tet.has_intersection(pos, dir) {
-                    //     if t == self_t {
-                    //         continue;
-                    //     }
-                    // }
-                    continue 'outer;
+            let bvh = self.bvh.as_ref().unwrap();
+            let hits = bvh.traverse(&ray, &self.tets);
+            if !hits.is_empty() {
+                // check if hits are true positives
+                for tet in hits {
+                    if tet.has_intersection(pos, dir).is_some() {
+                        continue 'outer;
+                    }
                 }
             }
             hours_of_sun += 1;
@@ -354,6 +405,7 @@ fn get_elevation(month: usize, local_time: f32) -> f32 {
 }
 
 fn get_azimuth_and_elevation(month: usize, local_time: f32) -> (f32, f32) {
+    // return (f32::to_radians(180.0), f32::to_radians(10.0));
     let elevation = get_elevation(month, local_time);
     let declination = get_declination(month).to_radians();
     let hra = get_hour_angle(month, local_time).to_radians();
@@ -610,6 +662,7 @@ mod tests {
     #[test]
     fn test_estimate_illumination_ray_traced() {
         let mut ecosystem = Ecosystem::init();
+        ecosystem.build_bvh();
         let index = CellIndex::new(2, 2);
         let illumination = ecosystem.ray_trace_illumination(&index, 0);
         assert_eq!(illumination, 9.0 * constants::PERCENT_SUNNY_DAYS);
@@ -619,7 +672,7 @@ mod tests {
         assert_eq!(illumination, 15.0 * constants::PERCENT_SUNNY_DAYS);
 
         // add a tall hill to the south (negative Y direction)
-        let height = 10.0;
+        let height = 100.0;
         let cell = &mut ecosystem[CellIndex::new(0, 0)];
         cell.add_bedrock(height);
         let cell = &mut ecosystem[CellIndex::new(1, 0)];

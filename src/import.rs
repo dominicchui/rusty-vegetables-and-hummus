@@ -9,14 +9,15 @@ pub fn import_height_map(path: &str) -> EcosystemRenderable {
 
     // create ecosystem terrain based on the height map
     let mut heights = [0.0; constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH];
-    // input is a u8, so a scaling factor of 0.1 means max height is 25.6m
-    let height_scaling_factor = 1.0; 
+    // input is a u8, so a scaling factor of 0.1 means max height is 25.5m
+    let height_scaling_factor = constants::HEIGHT_SCALING_FACTOR;
+    println!("height_scaling_factor {height_scaling_factor}");
     for (i, pixel) in rgb8_vec.pixels().enumerate() {
         let height = pixel.0[0] as f32 * height_scaling_factor;
         heights[i] = height;
     }
+    // println!("heights {heights:?}");
     let ecosystem = Ecosystem::init_with_heights(heights);
 
     EcosystemRenderable::init(ecosystem)
 }
-

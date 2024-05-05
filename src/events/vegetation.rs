@@ -15,7 +15,7 @@ const HUMUS_DENSITY: f32 = 1500.0; // in kg per cubic meter
 
 // how vigor and stress affects grass coverage
 const GRASSES_VIGOR_GROWTH: f32 = 0.5;
-const GRASSES_STRESS_DEATH: f32 = 0.1;
+const GRASSES_STRESS_DEATH: f32 = 1.0;
 
 // viability constants for vegetation
 pub(crate) trait Vegetation {
@@ -60,7 +60,7 @@ impl Vegetation for Trees {
     const MOISTURE_LIMIT_MIN: f32 = 0.1;
     const MOISTURE_IDEAL_MIN: f32 = 0.2;
     const MOISTURE_IDEAL_MAX: f32 = 0.4;
-    const MOISTURE_LIMIT_MAX: f32 = 0.8;
+    const MOISTURE_LIMIT_MAX: f32 = 0.6;
 
     // very rough estimates since numbers are hard to find
     const ILLUMINATION_LIMIT_MIN: f32 = 1.0;
@@ -120,7 +120,7 @@ impl Vegetation for Bushes {
         if let Some(trees) = &cell.trees {
             let tree_density = Cell::estimate_tree_density(trees);
             // todo placeholder value
-            tree_density * 0.5
+            1.0 - (tree_density * 0.5)
         } else {
             1.0
         }
@@ -134,15 +134,15 @@ impl Vegetation for Grasses {
     const TEMPERATURE_LIMIT_MAX: f32 = 30.0;
     const TEMPERATURE_IDEAL_MIN: f32 = 38.0;
 
-    const MOISTURE_LIMIT_MIN: f32 = 0.2;
-    const MOISTURE_IDEAL_MIN: f32 = 0.4;
+    const MOISTURE_LIMIT_MIN: f32 = 0.05;
+    const MOISTURE_IDEAL_MIN: f32 = 0.2;
     const MOISTURE_IDEAL_MAX: f32 = 0.6;
     const MOISTURE_LIMIT_MAX: f32 = 0.8;
 
     const ILLUMINATION_LIMIT_MIN: f32 = 4.0;
     const ILLUMINATION_IDEAL_MIN: f32 = 6.0;
     const ILLUMINATION_IDEAL_MAX: f32 = 8.0;
-    const ILLUMINATION_LIMIT_MAX: f32 = 12.0;
+    const ILLUMINATION_LIMIT_MAX: f32 = 14.0;
 
     fn clone_from_cell(cell: &Cell) -> Self {
         if let Some(grasses) = &cell.grasses {
@@ -161,14 +161,13 @@ impl Vegetation for Grasses {
         if let Some(trees) = &cell.trees {
             let tree_density = Cell::estimate_tree_density(trees);
             // todo placeholder value
-            modifier *= 0.5 * tree_density;
+            modifier -= 0.25 * tree_density;
         }
         if let Some(bushes) = &cell.bushes {
             let bushes_density = Cell::estimate_bushes_density(bushes);
             // todo placeholder value
-            modifier *= 0.5 * bushes_density;
+            modifier -= 0.25 * bushes_density;
         }
-
         modifier
     }
 }
@@ -206,7 +205,7 @@ impl Individualized for Trees {
     const SEEDLING_VIGOR_CONSTANT: f32 = 0.5;
     const GROWTH_RATE: f32 = 0.3;
     const LIFE_EXPECTANCY: f32 = 80.0;
-    const STRESS_DEATH_CONSTANT: f32 = 1.0;
+    const STRESS_DEATH_CONSTANT: f32 = 5.0;
     const SENESCENCE_DEATH_CONSTANT: f32 = 0.05;
 
     fn init(number_of_plants: u32, plant_height_sum: f32, plant_age_sum: f32) -> Self {
@@ -258,11 +257,18 @@ impl Individualized for Trees {
     }
 
     fn kill_plants(&mut self, amount: u32) {
-        let average_plant_height = self.get_plant_height_sum() / self.get_number_of_plants() as f32;
-        let average_plant_age = self.get_plant_age_sum() / self.get_number_of_plants() as f32;
-        self.update_number_of_plants(-(amount as i32));
-        self.update_plant_height_sum(-(amount as f32) * average_plant_height);
-        self.update_plant_age_sum(-(amount as f32) * average_plant_age);
+        if amount >= self.number_of_plants {
+            self.number_of_plants = 0;
+            self.plant_height_sum = 0.0;
+            self.plant_age_sum = 0.0;
+        } else {
+            let average_plant_height =
+                self.get_plant_height_sum() / self.get_number_of_plants() as f32;
+            let average_plant_age = self.get_plant_age_sum() / self.get_number_of_plants() as f32;
+            self.update_number_of_plants(-(amount as i32));
+            self.update_plant_height_sum(-(amount as f32) * average_plant_height);
+            self.update_plant_age_sum(-(amount as f32) * average_plant_age);
+        }
     }
 }
 
@@ -324,11 +330,18 @@ impl Individualized for Bushes {
     }
 
     fn kill_plants(&mut self, amount: u32) {
-        let average_plant_height = self.get_plant_height_sum() / self.get_number_of_plants() as f32;
-        let average_plant_age = self.get_plant_age_sum() / self.get_number_of_plants() as f32;
-        self.update_number_of_plants(-(amount as i32));
-        self.update_plant_height_sum(-(amount as f32) * average_plant_height);
-        self.update_plant_age_sum(-(amount as f32) * average_plant_age);
+        if amount >= self.number_of_plants {
+            self.number_of_plants = 0;
+            self.plant_height_sum = 0.0;
+            self.plant_age_sum = 0.0;
+        } else {
+            let average_plant_height =
+                self.get_plant_height_sum() / self.get_number_of_plants() as f32;
+            let average_plant_age = self.get_plant_age_sum() / self.get_number_of_plants() as f32;
+            self.update_number_of_plants(-(amount as i32));
+            self.update_plant_height_sum(-(amount as f32) * average_plant_height);
+            self.update_plant_age_sum(-(amount as f32) * average_plant_age);
+        }
     }
 }
 
@@ -359,11 +372,14 @@ impl Events {
         let cell = &ecosystem[index];
         let grasses = Grasses::clone_from_cell(cell);
         let (vigor, stress) = Self::compute_vigor_and_stress(ecosystem, index, &grasses);
+        // if index == CellIndex::new(30,30) {
+        //     println!("vigor {vigor} stress {stress}, density {}", grasses.coverage_density);
+        // }
         // directly modify coverage based on vigor and stress
         let mut new_coverage = grasses.coverage_density;
         if stress < 0.0 {
             let death_coverage = (-stress) * GRASSES_STRESS_DEATH;
-            new_coverage += death_coverage;
+            new_coverage -= death_coverage;
 
             // convert to dead_vegetation
             let dead_biomass = Grasses::estimate_biomass_for_coverage_density(death_coverage);
@@ -450,8 +466,6 @@ impl Events {
                 vegetation.kill_plants(1);
                 density = vegetation.estimate_density();
             }
-            // let overpopulation_deaths = pre_death_count - vegetation.get_number_of_plants();
-            // println!("overpopulation_deaths {overpopulation_deaths}");
 
             // 2) stress (non-positive real number)
             let stress_deaths = ((-stress) * T::STRESS_DEATH_CONSTANT) as u32;
@@ -478,17 +492,13 @@ impl Events {
                 total_dead as f32 * pre_death_average_height,
                 0.0,
             );
-            // println!("dead_vegetation {dead_vegetation:?}");
 
             // conversion to dead vegetation
             new_dead_biomass += dead_vegetation.estimate_biomass();
-            // println!("new_dead_biomass {new_dead_biomass}");
         }
-        // println!("Vegetation end {vegetation:?}");
 
         let cell = &mut ecosystem[index];
         vegetation.set_in_cell(cell);
-        // println!("Cell {cell:?}");
 
         // let some dead vegetation rot away into CO2
         let disappeared_dead_biomass =
@@ -563,14 +573,17 @@ impl Events {
         // determines viability from piecewise function evaluating all three of temperature, moisture, and sunlight
         let temperature_viability =
             Self::compute_temperature_viability(ecosystem, index, vegetation, month);
-        let moisture_viability = 0.5; // todo remove
-            //Self::compute_moisture_viability(ecosystem, index, vegetation, month);
+        let moisture_viability = //0.5; // todo remove
+            Self::compute_moisture_viability(ecosystem, index, vegetation, month);
         let illumination_viability =
             Self::compute_illumination_viability(ecosystem, index, vegetation, month);
-        // println!("type {}", std::any::type_name::<T>());
-        // println!("temperature_viability {temperature_viability}");
-        // println!("moisture_viability {moisture_viability}");
-        // println!("illumination_viability {illumination_viability}");
+        // if index == CellIndex::new(30,30) && std::any::type_name::<T>() == "vegetables_and_hummus::ecology::Grasses"{
+        //     println!("type {}", std::any::type_name::<T>());
+        //     println!("temperature_viability {temperature_viability}");
+        //     println!("moisture_viability {moisture_viability}");
+        //     println!("illumination_viability {illumination_viability}");
+        //     println!("illumination {:?}", ecosystem[index].hours_of_sunlight);
+        // }
 
         // viability is lowest of the the sub-values (Leibig’s law of the minimum)
         f32::min(
@@ -602,31 +615,40 @@ impl Events {
         }
     }
 
+    pub(crate) fn compute_moisture(ecosystem: &Ecosystem, index: CellIndex, month: usize) -> f32 {
+        let cell = &ecosystem[index];
+        // convert moisture in terms of volume to % by volume
+        let moisture_volume = cell.get_monthly_soil_moisture(month);
+        // in L
+        // bedrock, rock, sand, and humus can all hold water, but make simplifying assumption that all water makes it to humus layer
+        // so each cell is 10x10xheight m, where height is height of humus
+        // 1 cubic meter = 1000 liters
+
+        let height = cell.get_humus_height();
+        let cell_volume =
+            constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH * height * 1000.0; // in L
+                                                                                         // if index == CellIndex::new(5,5) {
+                                                                                         //     println!("moisture_volume {moisture_volume}");
+                                                                                         //     println!("height {height}");
+                                                                                         //     println!("cell_volume {cell_volume}");
+                                                                                         // }
+        if cell_volume == 0.0 {
+            0.0
+        } else {
+            f32::min(moisture_volume / cell_volume, 1.0)
+        }
+    }
+
     fn compute_moisture_viability<T: Vegetation>(
         ecosystem: &Ecosystem,
         index: CellIndex,
         _: &T,
         month: usize,
     ) -> f32 {
-        let cell = &ecosystem[index];
-        // convert moisture in terms of volume to % by volume
-        let moisture_volume = cell.get_monthly_soil_moisture(month); // in L
-                                                                     // println!("moisture_volume {moisture_volume}");
-                                                                     // println!("cell moisture {}", cell.soil_moisture);
-                                                                     // bedrock, rock, sand, and humus can all hold water, but make simplifying assumption that all water makes it to humus layer
-                                                                     // so each cell is 10x10xheight m, where height is height of humus
-                                                                     // 1 cubic meter = 1000 liters
-        let height = cell.get_humus_height();
-        // println!("height {height}");
-        let cell_volume =
-            constants::CELL_SIDE_LENGTH * constants::CELL_SIDE_LENGTH * height * 1000.0; // in L
-                                                                                         // println!("cell_volume {cell_volume}");
-        let moisture = if cell_volume == 0.0 {
-            0.0
-        } else {
-            moisture_volume / cell_volume
-        };
-        // println!("moisture {moisture}");
+        let moisture = Self::compute_moisture(ecosystem, index, month);
+        // if index == CellIndex::new(5,5) {
+        //     println!("moisture {moisture}");
+        // }
 
         match moisture {
             moisture if moisture < T::MOISTURE_LIMIT_MIN => -1.0,
@@ -649,9 +671,13 @@ impl Events {
     ) -> f32 {
         let cell = &ecosystem[index];
         let modifier = T::get_illumination_coverage_constant(cell);
-        // println!("modifier {modifier}");
         let illumination =
             ecosystem.get_precomputed_illumination_ray_traced(&index, month) * modifier;
+        // if index == CellIndex::new(30, 30)
+        //     && std::any::type_name::<T>() == "vegetables_and_hummus::ecology::Grasses"
+        // {
+        //     println!("modifier {modifier} illumination {illumination}");
+        // }
         match illumination {
             illumination if illumination < T::ILLUMINATION_LIMIT_MIN => -1.0,
             illumination if illumination < T::ILLUMINATION_IDEAL_MIN => {
