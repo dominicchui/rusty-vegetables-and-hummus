@@ -72,8 +72,8 @@ fn main() {
     let shader_program = render_gl::Program::from_shaders(&[vert_shader, frag_shader]).unwrap();
 
     // Set up simulation and tracking variables
-    // let mut simulation = Simulation::init();
-    let mut simulation = Simulation::init_with_height_map(constants::IMPORT_FILE_PATH);
+    let mut simulation = Simulation::init();
+    // let mut simulation = Simulation::init_with_height_map(constants::IMPORT_FILE_PATH);
 
     let mut color_mode = ColorMode::Standard;
     let mut path = "".to_string();

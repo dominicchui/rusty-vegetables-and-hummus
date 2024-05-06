@@ -4,6 +4,7 @@ mod rock_slide;
 mod sand_slide;
 mod thermal_stress;
 mod vegetation;
+mod wind;
 
 use nalgebra::Vector3;
 
@@ -24,6 +25,7 @@ pub(crate) enum Events {
     VegetationTrees,
     VegetationBushes,
     VegetationGrasses,
+    Wind,
 }
 
 impl Events {
@@ -42,6 +44,7 @@ impl Events {
                 Events::VegetationTrees => Self::apply_trees_event(ecosystem, index),
                 Events::VegetationBushes => Self::apply_bushes_event(ecosystem, index),
                 Events::VegetationGrasses => Self::apply_grasses_event(ecosystem, index),
+                Events::Wind => Self::apply_wind_event(ecosystem, index),
             };
         }
     }

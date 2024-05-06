@@ -219,6 +219,22 @@ impl Ecosystem {
         ecosystem
     }
 
+    pub fn init_sand() -> Self {
+        let sand_height = 0.5;
+        let mut ecosystem = Self::init();
+        for i in 0..constants::AREA_SIDE_LENGTH {
+            for j in 0..constants::AREA_SIDE_LENGTH {
+                ecosystem[CellIndex::new(i, j)].add_sand(sand_height);
+            }
+        }
+        // add a wall
+        for j in 0..constants::AREA_SIDE_LENGTH {
+            ecosystem[CellIndex::new(10, j)].add_bedrock(2.0);
+        }
+
+        ecosystem
+    }
+
     fn get_initial_humus_height(slope: f32) -> f32 {
         // a 30° slope should have about half the humus as a 0° slope
         constants::DEFAULT_HUMUS_HEIGHT

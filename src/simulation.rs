@@ -16,7 +16,7 @@ pub struct Simulation {
 
 impl Simulation {
     pub fn init() -> Self {
-        let ecosystem = Ecosystem::init_standard();
+        let ecosystem = Ecosystem::init_sand();
         Simulation {
             ecosystem: EcosystemRenderable::init(ecosystem),
         }
@@ -37,19 +37,20 @@ impl Simulation {
         let num_cells = constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH;
 
         let mut vec: Vec<usize> = (0..num_cells).collect();
-        vec.shuffle(&mut thread_rng());
+        // vec.shuffle(&mut thread_rng());
 
         for i in vec {
             // apply random event
             let mut events = [
-                Events::Lightning,
-                Events::ThermalStress,
-                Events::SandSlide,
-                Events::RockSlide,
-                Events::HumusSlide,
-                Events::VegetationTrees,
-                Events::VegetationBushes,
-                Events::VegetationGrasses,
+                // Events::Lightning,
+                // Events::ThermalStress,
+                // Events::SandSlide,
+                // Events::RockSlide,
+                // Events::HumusSlide,
+                // Events::VegetationTrees,
+                // Events::VegetationBushes,
+                // Events::VegetationGrasses,
+                Events::Wind,
             ];
             events.shuffle(&mut thread_rng());
             // println!("Events {events:?}");
@@ -61,7 +62,7 @@ impl Simulation {
             // let cell = &self.ecosystem.ecosystem[index];
             // humus_heights.push(cell.get_humus_height());
             // println!("{index} sunlight {:?}", cell.hours_of_sunlight);
-            // println!("height {}", cell.get_height());
+            // println!("{index} height {} sand {}", cell.get_height(), cell.get_sand_height());
         }
 
         // println!("humus heights {humus_heights:?}");
