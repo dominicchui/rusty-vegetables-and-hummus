@@ -73,22 +73,26 @@ impl Ecosystem {
         ecosystem.update_tets();
 
         // add humus
-        let mut humus_heights = [[0.0; constants::AREA_SIDE_LENGTH]; constants::AREA_SIDE_LENGTH];
-        for (i, heights) in humus_heights.iter_mut().enumerate() {
-            for (j, height) in heights.iter_mut().enumerate() {
-                let index = CellIndex::new(i, j);
-                let slope = ecosystem.get_slope_at_point(index);
-                let humus_height = Self::get_initial_humus_height(slope);
-                *height = humus_height;
-            }
-        }
-        for (i, heights) in humus_heights.iter().enumerate() {
-            for (j, height) in heights.iter().enumerate() {
-                let index = CellIndex::new(i, j);
-                let cell = &mut ecosystem[index];
-                cell.add_humus(*height);
-            }
-        }
+        // let mut humus_heights = [[0.0; constants::AREA_SIDE_LENGTH]; constants::AREA_SIDE_LENGTH];
+        // for (i, heights) in humus_heights.iter_mut().enumerate() {
+        //     for (j, height) in heights.iter_mut().enumerate() {
+        //         let index = CellIndex::new(i, j);
+        //         let slope = ecosystem.get_slope_at_point(index);
+        //         let humus_height = Self::get_initial_humus_height(slope);
+        //         *height = humus_height;
+        //     }
+        // }
+        // for (i, heights) in humus_heights.iter().enumerate() {
+        //     for (j, height) in heights.iter().enumerate() {
+        //         let index = CellIndex::new(i, j);
+        //         let cell = &mut ecosystem[index];
+        //         cell.add_humus(*height);
+        //     }
+        // }
+
+        // add sand for fun
+        Self::add_blanket_sand(&mut ecosystem, 1.0);
+        
 
         ecosystem
     }
@@ -220,19 +224,35 @@ impl Ecosystem {
     }
 
     pub fn init_sand() -> Self {
-        let sand_height = 0.5;
+        let sand_height = 1.0;
         let mut ecosystem = Self::init();
-        for i in 0..constants::AREA_SIDE_LENGTH {
-            for j in 0..constants::AREA_SIDE_LENGTH {
-                ecosystem[CellIndex::new(i, j)].add_sand(sand_height);
+        Self::add_blanket_sand(&mut ecosystem, sand_height);
+        // add a wall
+        for i in 130..160 {
+            for j in 80..100 {
+                ecosystem[CellIndex::new(i, j)].add_bedrock(10.0);
             }
         }
-        // add a wall
-        for j in 0..constants::AREA_SIDE_LENGTH {
-            ecosystem[CellIndex::new(10, j)].add_bedrock(2.0);
+        for i in 90..120 {
+            for j in 110..130 {
+                ecosystem[CellIndex::new(i, j)].add_bedrock(10.0);
+            }
         }
-
+        for i in 50..80 {
+            for j in 140..160 {
+                ecosystem[CellIndex::new(i, j)].add_bedrock(10.0);
+            }
+        }
+        
         ecosystem
+    }
+
+    fn add_blanket_sand(ecosystem: &mut Ecosystem, height: f32) {
+        for i in 0..constants::AREA_SIDE_LENGTH {
+            for j in 0..constants::AREA_SIDE_LENGTH {
+                ecosystem[CellIndex::new(i, j)].add_sand(height);
+            }
+        }
     }
 
     fn get_initial_humus_height(slope: f32) -> f32 {

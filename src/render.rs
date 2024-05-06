@@ -53,7 +53,7 @@ impl EcosystemRenderable {
             for j in 0..constants::AREA_SIDE_LENGTH {
                 let index = CellIndex::new(i, j);
                 let cell = &ecosystem[index];
-                let height = cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR) / 10.0;
+                let height = cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR) / constants::HEIGHT_RENDER_SCALE;
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(ecosystem.get_normal(index));
                 colors.push(Self::get_color(&ecosystem, index));
@@ -85,7 +85,7 @@ impl EcosystemRenderable {
                 let center: Vector3<f32> = Vector3::new(
                     i as f32,
                     j as f32,
-                    cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR) / 10.0,
+                    cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR) / constants::HEIGHT_RENDER_SCALE,
                 );
                 // let tree_pos = ecosystem_render.m_tree_positions[i + j * constants::AREA_SIDE_LENGTH];
                 // let center = Vector3::new(
@@ -471,7 +471,7 @@ impl EcosystemRenderable {
                 let index = CellIndex::new(i, j);
                 let cell = &self.ecosystem[index];
                 // make uniform cube cells
-                let height = cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR) / 10.0;
+                let height = cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR) / constants::HEIGHT_RENDER_SCALE;
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(self.ecosystem.get_normal(index));
                 match color_mode {
@@ -499,7 +499,7 @@ impl EcosystemRenderable {
                 let center = Vector3::new(
                     tree_pos.x + i as f32,
                     tree_pos.y + j as f32,
-                    cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR) / 10.0,
+                    cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR) / constants::HEIGHT_RENDER_SCALE,
                 );
                 Self::add_tree(
                     center,
@@ -705,9 +705,9 @@ impl EcosystemRenderable {
 
     fn get_normalize_soil_moisture_color(ecosystem: &Ecosystem, index: CellIndex) -> Vector3<f32> {
         let moisture = Events::compute_moisture(ecosystem, index, 6);
-        if index == CellIndex::new(35, 35) {
-            println!("moisture {moisture}");
-        }
+        // if index == CellIndex::new(35, 35) {
+        //     println!("moisture {moisture}");
+        // }
         Vector3::new((moisture - 0.5) / 2.0, 0.0, moisture / 2.0)
     }
 }

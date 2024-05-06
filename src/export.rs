@@ -1,9 +1,6 @@
 use crate::{
-    constants::{self, TINTS, TINT_THRESHOLD},
-    ecology::{CellIndex, Ecosystem},
-    render::EcosystemRenderable,
+    constants, ecology::{CellIndex, Ecosystem}, render::EcosystemRenderable
 };
-use nalgebra::Vector3;
 
 /// process:
 /// generate height map and density maps for all layers

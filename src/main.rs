@@ -8,6 +8,8 @@ use sdl2::{
 use simulation::Simulation;
 use std::{collections::HashSet, ffi::CString, thread::sleep, time::Duration};
 
+use crate::export::export_height_map;
+
 mod camera;
 mod constants;
 mod ecology; // apparently naming this "ecosystem" breaks rust analyzer :(
@@ -74,6 +76,7 @@ fn main() {
     // Set up simulation and tracking variables
     let mut simulation = Simulation::init();
     // let mut simulation = Simulation::init_with_height_map(constants::IMPORT_FILE_PATH);
+    let export_terrain = false;
 
     let mut color_mode = ColorMode::Standard;
     let mut path = "".to_string();
@@ -121,9 +124,23 @@ fn main() {
                 println!("elapsed_secs {elapsed_secs}");
                 simulation.take_time_step(&color_mode);
                 count += 1;
-                let duration = (0.25 - elapsed_secs) * 1000.0;
+                let duration = (0.1 - elapsed_secs) * 1000.0;
                 println!("sleep duration {duration} ms");
-                sleep(Duration::from_millis(duration as u64));
+                // sleep(Duration::from_millis(duration as u64));
+
+                // export terrain
+                if export_terrain {
+                    if path.is_empty() {
+                        // create directory for export
+                        let now = chrono::Local::now();
+                        let today = now.date_naive().format("%Y_%m_%d").to_string();
+                        let time = now.time().format("%H_%M_%S").to_string();
+                        path = format!("./output/{today}-{time}");
+                        println!("{path}");
+                        std::fs::create_dir(path.clone()).unwrap();
+                    }
+                    export_height_map(&simulation.ecosystem.ecosystem, count, &path);
+                }
             }
             loop_end = SDL_GetPerformanceCounter();
         }
@@ -143,6 +160,21 @@ fn main() {
             // take one time step
             println!("\nTime step {count}");
             simulation.take_time_step(&color_mode);
+
+            // export terrain
+            if export_terrain {
+                if path.is_empty() {
+                    // create directory for export
+                    let now = chrono::Local::now();
+                    let today = now.date_naive().format("%Y_%m_%d").to_string();
+                    let time = now.time().format("%H_%M_%S").to_string();
+                    path = format!("./output/{today}-{time}");
+                    println!("{path}");
+                    std::fs::create_dir(path.clone()).unwrap();
+                }
+                export_height_map(&simulation.ecosystem.ecosystem, count, &path);
+            }
+
             count += 1;
         } else if new_keys.contains(&Keycode::T) {
             // continuously take time steps

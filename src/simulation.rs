@@ -37,14 +37,14 @@ impl Simulation {
         let num_cells = constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH;
 
         let mut vec: Vec<usize> = (0..num_cells).collect();
-        // vec.shuffle(&mut thread_rng());
+        vec.shuffle(&mut thread_rng());
 
         for i in vec {
             // apply random event
             let mut events = [
                 // Events::Lightning,
                 // Events::ThermalStress,
-                // Events::SandSlide,
+                Events::SandSlide,
                 // Events::RockSlide,
                 // Events::HumusSlide,
                 // Events::VegetationTrees,

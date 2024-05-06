@@ -23,9 +23,10 @@ impl Events {
         cell.remove_sand(moved_height);
 
         // 2) transport sand to target cell
-        let local_strength = get_local_sand_strength(ecosystem, index);
+        let wind_shadowing = get_wind_shadowing(ecosystem, index, constants::WIND_DIRECTION);
+        let local_strength = get_local_sand_strength(wind_shadowing);
         let distance = get_saltation_distance(local_strength);
-        let direction = get_wind_direction_vector();
+        let direction = get_wind_direction_vector(constants::WIND_DIRECTION);
         let target_vec = direction * distance;
         let target_x = index.x as i32 + target_vec.x as i32;
         let target_y = index.y as i32 + target_vec.y as i32;
@@ -40,7 +41,7 @@ impl Events {
         target.add_sand(moved_height);
 
         // 3) on landing, sand can bounce or be deposited
-        let bounce_probability = get_bounce_probability(ecosystem, index, get_wind_shadowing(ecosystem, index));
+        let bounce_probability = get_bounce_probability(ecosystem, index, wind_shadowing);
         let mut rng = rand::thread_rng();
         let rand: f32 = rng.gen();
 
@@ -88,22 +89,22 @@ fn perform_reptation(ecosystem: &mut Ecosystem, target_index: CellIndex, moved_h
     }
 }
 
-fn get_wind_direction_vector() -> Vector2<f32> {
-    let wind_dir = constants::WIND_DIRECTION.to_radians();
+fn get_wind_direction_vector(wind_angle: f32) -> Vector2<f32> {
+    let wind_dir = wind_angle.to_radians();
     let x = wind_dir.sin();
     let y = wind_dir.cos();
     Vector2::new(x,y).normalize()
 }
 
-fn get_local_sand_strength(ecosystem: &Ecosystem, index: CellIndex) -> f32 {
-    let shadowing = get_wind_shadowing(ecosystem, index);
-    constants::WIND_STRENGTH * (1.0 - shadowing)
+fn get_local_sand_strength(wind_shadowing: f32) -> f32 {
+    // let shadowing = get_wind_shadowing(ecosystem, index, wind_angle);
+    constants::WIND_STRENGTH * (1.0 - wind_shadowing)
 }
 
-fn get_wind_shadowing(ecosystem: &Ecosystem, index: CellIndex) -> f32 {
-// wind shadowing
+fn get_wind_shadowing(ecosystem: &Ecosystem, index: CellIndex, wind_angle: f32) -> f32 {
+    // wind shadowing
     // cells are shadowed under 15° up to 10 cells away
-    let dir = get_wind_direction_vector();
+    let dir = get_wind_direction_vector(wind_angle);
 
     let mut steepest_slope = 0.0;
     for i in 0..10 {
@@ -124,8 +125,7 @@ fn get_wind_shadowing(ecosystem: &Ecosystem, index: CellIndex) -> f32 {
         let angle = f32::atan(steepest_slope).to_degrees();
         let theta_min = -10.0;
         let theta_max = -15.0;
-        let shadowing = f32::min((angle - theta_min) / (theta_max - theta_min), 1.0);
-        shadowing
+        f32::min((angle - theta_min) / (theta_max - theta_min), 1.0)
     } else {
         0.0
     }
@@ -178,40 +178,48 @@ fn get_two_steepest_neighbors(ecosystem: &Ecosystem, index: CellIndex) -> (Optio
 #[cfg(test)]
 mod tests {
     use float_cmp::approx_eq;
-    use crate::{constants, ecology::{Bushes, CellIndex, Ecosystem, Grasses, Trees}};
+    use crate::{constants, ecology::{Bushes, CellIndex, Ecosystem, Grasses, Trees}, events::wind::get_wind_shadowing};
     use super::{get_bounce_probability, get_local_sand_strength, get_two_steepest_neighbors, perform_reptation, CARRYING_CAPACITY};
 
 
     #[test]
     fn test_get_local_sand_strength() {
         let mut ecosystem = Ecosystem::init();
-        let wind_strength = get_local_sand_strength(&ecosystem, CellIndex::new(3,3));
+        let index = CellIndex::new(3,3);
+        let wind_angle = 270.0;
+        let wind_shadowing = get_wind_shadowing(&ecosystem, index, wind_angle);
+        let wind_strength = get_local_sand_strength(wind_shadowing);
         assert_eq!(wind_strength, constants::WIND_STRENGTH);
 
         // adding small hill to east should not affect strength
         ecosystem[CellIndex::new(4,3)].add_bedrock(2.0);
-        let wind_strength = get_local_sand_strength(&ecosystem, CellIndex::new(3,3));
+        let wind_shadowing = get_wind_shadowing(&ecosystem, index, wind_angle);
+        let wind_strength = get_local_sand_strength(wind_shadowing);
         assert_eq!(wind_strength, constants::WIND_STRENGTH);
 
         // adding large hill to west should decrease wind strength
         ecosystem[CellIndex::new(2,3)].add_bedrock(1.0);
-        let wind_strength = get_local_sand_strength(&ecosystem, CellIndex::new(3,3));
+        let wind_shadowing = get_wind_shadowing(&ecosystem, index, wind_angle);
+        let wind_strength = get_local_sand_strength(wind_shadowing);
         assert_eq!(wind_strength, 0.0 * constants::WIND_STRENGTH);
 
         // make hill smaller
         ecosystem[CellIndex::new(2,3)].remove_bedrock(0.8);
-        let wind_strength = get_local_sand_strength(&ecosystem, CellIndex::new(3,3));
+        let wind_shadowing = get_wind_shadowing(&ecosystem, index, wind_angle);
+        let wind_strength = get_local_sand_strength(wind_shadowing);
         let expected = (1.0- 0.22) * constants::WIND_STRENGTH;
         assert!(approx_eq!(f32, wind_strength, expected, epsilon=0.1), "Expected {expected}, actual {wind_strength}");
 
         // add taller hill further away
         ecosystem[CellIndex::new(1,3)].add_bedrock(0.5);
-        let wind_strength = get_local_sand_strength(&ecosystem, CellIndex::new(3,3));
+        let wind_shadowing = get_wind_shadowing(&ecosystem, index, wind_angle);
+        let wind_strength = get_local_sand_strength(wind_shadowing);
         let expected = (1.0- 0.72) * constants::WIND_STRENGTH;
         assert!(approx_eq!(f32, wind_strength, expected, epsilon=0.1), "Expected {expected}, actual {wind_strength}");
 
         // check boundaries
-        let wind_strength = get_local_sand_strength(&ecosystem, CellIndex::new(0,0));
+        let wind_shadowing = get_wind_shadowing(&ecosystem, CellIndex::new(0,0), wind_angle);
+        let wind_strength = get_local_sand_strength(wind_shadowing);
         assert_eq!(wind_strength, constants::WIND_STRENGTH);
     }
 

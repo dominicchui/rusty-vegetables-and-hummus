@@ -4,13 +4,16 @@ pub(crate) const SCREEN_WIDTH: usize = 1400;
 pub(crate) const SCREEN_HEIGHT: usize = 1000;
 pub(crate) const SPEED: f32 = AREA_SIDE_LENGTH as f32;
 
-pub(crate) const AREA_SIDE_LENGTH: usize = 40; // in cells
+pub(crate) const AREA_SIDE_LENGTH: usize = 256; // in cells
 pub(crate) const CELL_SIDE_LENGTH: f32 = 10.0; // in meters
 pub(crate) const DEFAULT_BEDROCK_HEIGHT: f32 = 100.0; // in meters
 
-pub(crate) const IMPORT_FILE_PATH: &str = "./resources/height_maps/berkshires_2-100.png";
+pub(crate) const IMPORT_FILE_PATH: &str = "./resources/height_maps/berkshires_2-40.png";
+// how to convert from import pixel intensity to height
+pub(crate) const HEIGHT_SCALING_FACTOR: f32 = AREA_SIDE_LENGTH as f32 / 255.0 / 10.0;
 
-pub(crate) const HEIGHT_SCALING_FACTOR: f32 = AREA_SIDE_LENGTH as f32 / 255.0;
+// how many units of height correspond to one unit in the z direction
+pub(crate) const HEIGHT_RENDER_SCALE:f32 = 10.0;
 
 // Providence RI
 pub(crate) const LATITUDE: f32 = 41.8;
@@ -66,5 +69,5 @@ pub(crate) const PERCENT_SUNNY_DAYS: f32 = 0.75;
 
 pub(crate) const DEFAULT_HUMUS_HEIGHT: f32 = 0.5;
 
-pub(crate) const WIND_DIRECTION: f32 = 270.0; // degrees from north
+pub(crate) const WIND_DIRECTION: f32 = 45.0; // degrees from north
 pub(crate) const WIND_STRENGTH: f32 = 10.0; // km/h
