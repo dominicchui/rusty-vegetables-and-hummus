@@ -14,6 +14,7 @@ pub(crate) fn export_maps(ecosystem: &Ecosystem, time_step: u32, path: &str) {
     export_color_map(ecosystem, time_step, path);
     // todo make more efficient
     export_hypsometric_color_map(build_height_map(ecosystem), time_step, path);
+    export_vegetation_map(ecosystem, time_step, path);
 }
 
 pub(crate) fn export_height_map(ecosystem: &Ecosystem, time_step: u32, path: &str) {
@@ -122,5 +123,51 @@ pub(crate) fn build_hypsometrically_tinted_map(
         buffer[i + 1] = (color[1] * 255.0) as u8;
         buffer[i + 2] = (color[2] * 255.0) as u8;
     }
+    buffer
+}
+
+pub(crate) fn export_vegetation_map(ecosystem: &Ecosystem, time_step: u32, path: &str) {
+    let path = format!("{path}/{}-vegetation.png", time_step);
+    println!("{path}");
+
+    let buf = build_vegetation_map(ecosystem);
+    image::save_buffer(
+        path,
+        &buf,
+        constants::AREA_SIDE_LENGTH as u32,
+        constants::AREA_SIDE_LENGTH as u32,
+        image::ColorType::Rgb8,
+    )
+    .unwrap();
+}
+
+pub(crate) fn build_vegetation_map(ecosystem: &Ecosystem) -> [u8; constants::NUM_CELLS * 3] {
+    // r channel is for trees
+    // g channel is for bushes
+    let mut buffer = [0; constants::NUM_CELLS * 3];
+
+    // for starters, use average height as density proxy
+    for i in 0..constants::AREA_SIDE_LENGTH {
+        for j in 0..constants::AREA_SIDE_LENGTH {
+            let index = CellIndex::new(i, j);
+            let flat_index = i + j * constants::AREA_SIDE_LENGTH;
+            let trees_color = if let Some(trees) = ecosystem[index].trees.as_ref() {
+                let avg_height = trees.plant_height_sum / trees.number_of_plants as f32;
+                (avg_height * 8.0) as u8
+            } else {
+                0
+            };
+            let bushes_color = if let Some(bushes) = ecosystem[index].bushes.as_ref() {
+                let avg_height = bushes.plant_height_sum / bushes.number_of_plants as f32;
+                (avg_height * 60.0) as u8
+            } else {
+                0
+            };
+            buffer[flat_index * 3] = trees_color;
+            buffer[flat_index * 3 + 1] = bushes_color;
+            buffer[flat_index * 3 + 2] = 0;
+        }
+    }
+
     buffer
 }

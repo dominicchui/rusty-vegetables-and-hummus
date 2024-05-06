@@ -70,7 +70,6 @@ impl Ecosystem {
             let cell = &mut ecosystem[CellIndex::new(i, j)];
             cell.add_bedrock(*height);
         }
-        // ecosystem[CellIndex::new(2,8)].add_bedrock(30.0);
         ecosystem.update_tets();
 
         // add humus

@@ -278,7 +278,7 @@ impl Individualized for Bushes {
     const SEEDLING_VIGOR_CONSTANT: f32 = 0.5;
     const GROWTH_RATE: f32 = 0.2;
     const LIFE_EXPECTANCY: f32 = 20.0;
-    const STRESS_DEATH_CONSTANT: f32 = 1.0;
+    const STRESS_DEATH_CONSTANT: f32 = 5.0;
     const SENESCENCE_DEATH_CONSTANT: f32 = 0.05;
 
     fn init(number_of_plants: u32, plant_height_sum: f32, plant_age_sum: f32) -> Self {
