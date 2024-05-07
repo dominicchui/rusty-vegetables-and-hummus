@@ -8,7 +8,7 @@ use noise::{NoiseFn, Perlin};
 use rand::Rng;
 
 impl Ecosystem {
-    pub fn init_standard() -> Self {
+    pub fn init_standard_ianterrain() -> Self {
         let mut ecosystem = Self::init();
 
         let trees = Trees {
