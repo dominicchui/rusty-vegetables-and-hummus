@@ -1,7 +1,6 @@
 use crate::{
     constants,
     ecology::{CellIndex, Ecosystem, Trees},
-    
 };
 
 use noise::{NoiseFn, Perlin};
@@ -62,6 +61,57 @@ impl Ecosystem {
         }
         ecosystem
     }
+
+    pub fn init_standard_ianterrain() -> Self {
+        let mut ecosystem = Self::init();
+
+        let trees = Trees {
+            number_of_plants: 15,
+            plant_height_sum: 150.0,
+            plant_age_sum: 10.0,
+        };
+
+        let noise = Perlin::new(1);
+        let mut perlin_overlay: [[f32; 100]; 100] = [[0.0; 100]; 100];
+
+        for i in 0..100 {
+            for j in 0..100 {
+                let mut rng = rand::thread_rng();
+                let choice: f32 = rng.gen();
+
+                let cell = &mut ecosystem[CellIndex::new(i, j)];
+                let bedrock = cell.bedrock.as_mut().unwrap();
+
+                let x = (5.0*(((((i as f32)+(j as f32))/2.0))) - 250.0).abs()-150.0;
+                let h_func = 30.0*(1.0/(1.0+((1.03 as f32).powf(-x)))) + 1.0*choice;
+                let sample_noise = noise.get([i as f64, j as f64]);
+
+                bedrock.height = h_func;
+
+                perlin_overlay[i][j] = sample_noise as f32;
+
+                cell.trees = Some(trees.clone());
+                cell.add_humus(0.1);
+            }
+        }
+
+        for i in 2..98 {
+            for j in 2..98 {
+                let mut output: f32 = 0.0;
+
+                for a in 0..5 {
+                    for b in 0..5 {
+                        output = output + (perlin_overlay[((a - 2) as i32).abs() as usize][((b - 2) as i32).abs() as usize]);
+                    }
+                }
+
+                let c_index = CellIndex::new(i, j);
+                ecosystem[c_index].add_bedrock(output / 25.0);
+            }
+        }
+        ecosystem
+    }
+
 
     pub fn init_test() -> Self {
         let mut ecosystem = Self::init();
