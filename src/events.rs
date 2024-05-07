@@ -4,7 +4,7 @@ mod rock_slide;
 mod sand_slide;
 mod thermal_stress;
 mod vegetation;
-mod wind;
+pub(crate) mod wind;
 
 use nalgebra::Vector3;
 

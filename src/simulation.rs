@@ -33,6 +33,15 @@ impl Simulation {
     }
 
     pub fn take_time_step(&mut self, color_mode: &ColorMode) {
+        // sample wind for this time step
+        if let Some(wind_state) = &mut self.ecosystem.ecosystem.wind_state {
+            let (wind_dir, wind_str) = wind_state.wind_rose.sample_wind();
+            println!("dir {wind_dir}, str {wind_str}");
+            wind_state.wind_direction = wind_dir;
+            wind_state.wind_strength = wind_str;
+            crate::events::wind::convolve_terrain(&mut self.ecosystem.ecosystem);
+        }
+
         // iterate over all cells
         let num_cells = constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH;
 

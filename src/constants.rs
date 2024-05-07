@@ -13,7 +13,7 @@ pub(crate) const IMPORT_FILE_PATH: &str = "./resources/height_maps/berkshires_2-
 pub(crate) const HEIGHT_SCALING_FACTOR: f32 = AREA_SIDE_LENGTH as f32 / 255.0 / 10.0;
 
 // how many units of height correspond to one unit in the z direction
-pub(crate) const HEIGHT_RENDER_SCALE:f32 = 10.0;
+pub(crate) const HEIGHT_RENDER_SCALE: f32 = 10.0;
 
 // Providence RI
 pub(crate) const LATITUDE: f32 = 41.8;

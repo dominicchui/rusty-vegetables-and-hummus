@@ -1,6 +1,9 @@
+use rand::Rng;
+
 use crate::{
     constants,
     ecology::{CellIndex, Ecosystem, Trees},
+    events::wind::{self, WindRose, WindState},
 };
 
 impl Ecosystem {
@@ -92,7 +95,6 @@ impl Ecosystem {
 
         // add sand for fun
         Self::add_blanket_sand(&mut ecosystem, 1.0);
-        
 
         ecosystem
     }
@@ -227,23 +229,41 @@ impl Ecosystem {
         let sand_height = 1.0;
         let mut ecosystem = Self::init();
         Self::add_blanket_sand(&mut ecosystem, sand_height);
-        // add a wall
-        for i in 130..160 {
-            for j in 80..100 {
-                ecosystem[CellIndex::new(i, j)].add_bedrock(10.0);
-            }
-        }
-        for i in 90..120 {
-            for j in 110..130 {
-                ecosystem[CellIndex::new(i, j)].add_bedrock(10.0);
-            }
-        }
-        for i in 50..80 {
-            for j in 140..160 {
-                ecosystem[CellIndex::new(i, j)].add_bedrock(10.0);
-            }
-        }
-        
+
+        // set up wind rose
+        let mut wind_rose = WindRose::new(45.0, 10.0, 15.0);
+        // wind_rose.update_wind(180.0, 10.0, 15.0, 1.0);
+        // wind_rose.update_wind(270.0, 10.0, 15.0, 1.0);
+        let mut wind_state = WindState::new();
+        wind_state.wind_rose = wind_rose;
+        ecosystem.wind_state = Some(wind_state);
+
+        // // randomly perturbate bedrock
+        // let mut rng = rand::thread_rng();
+        // for i in 0..constants::AREA_SIDE_LENGTH {
+        //     for j in 0..constants::AREA_SIDE_LENGTH {
+        //         let rand: f32 = rng.gen();
+        //         ecosystem[CellIndex::new(i,j)].add_bedrock(rand);
+        //     }
+        // }
+
+        // // add obstacles
+        // for i in 130..160 {
+        //     for j in 80..100 {
+        //         ecosystem[CellIndex::new(i, j)].add_bedrock(10.0);
+        //     }
+        // }
+        // for i in 90..120 {
+        //     for j in 110..130 {
+        //         ecosystem[CellIndex::new(i, j)].add_bedrock(10.0);
+        //     }
+        // }
+        // for i in 50..80 {
+        //     for j in 140..160 {
+        //         ecosystem[CellIndex::new(i, j)].add_bedrock(10.0);
+        //     }
+        // }
+
         ecosystem
     }
 

@@ -1,7 +1,10 @@
 use bvh::bvh::Bvh;
 use nalgebra::Vector3;
 
-use crate::constants;
+use crate::{
+    constants,
+    events::wind::{WindRose, WindState},
+};
 use std::{
     fmt,
     ops::{Index, IndexMut},
@@ -17,7 +20,9 @@ pub struct Ecosystem {
     pub(crate) cells: Vec<Vec<Cell>>,
     pub(crate) tets: Vec<CellTetrahedron>,
     pub(crate) bvh: Option<Bvh<f32, 3>>,
+    pub(crate) wind_state: Option<WindState>,
 }
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub(crate) struct CellIndex {
     pub(crate) x: usize,
@@ -142,6 +147,7 @@ impl Ecosystem {
             ],
             tets: vec![],
             bvh: None,
+            wind_state: None,
         };
         ecosystem.init_cell_tets();
         ecosystem

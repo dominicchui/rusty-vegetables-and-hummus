@@ -124,8 +124,8 @@ fn main() {
                 println!("elapsed_secs {elapsed_secs}");
                 simulation.take_time_step(&color_mode);
                 count += 1;
-                let duration = (0.1 - elapsed_secs) * 1000.0;
-                println!("sleep duration {duration} ms");
+                // let duration = (0.1 - elapsed_secs) * 1000.0;
+                // println!("sleep duration {duration} ms");
                 // sleep(Duration::from_millis(duration as u64));
 
                 // export terrain
