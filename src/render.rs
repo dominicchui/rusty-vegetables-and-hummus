@@ -131,15 +131,15 @@ impl EcosystemRenderable {
         let far_plane = 10000.0;
         let middle = constants::AREA_SIDE_LENGTH as f32 / 2.0;
         let center = Vector3::new(middle, middle, constants::DEFAULT_BEDROCK_HEIGHT);
-        let eye: Vector3<f32> = center + Vector3::new(0.0, 15.0, 15.0);
-        // + Vector3::new(
-        //     0.0,
-        //     2.0 * constants::AREA_SIDE_LENGTH as f32,
-        //     1.5 * constants::AREA_SIDE_LENGTH as f32,
-        // );
+        let eye: Vector3<f32> = center // Vector3::new(0.0, 15.0, 15.0);
+        + Vector3::new(
+            0.0,
+            1.5 * constants::AREA_SIDE_LENGTH as f32,
+            1.5 * constants::AREA_SIDE_LENGTH as f32,
+        );
         let target: Vector3<f32> = center;
-        println!("center {center:?}");
-        println!("eye {eye:?}");
+        // println!("center {center:?}");
+        // println!("eye {eye:?}");
         ecosystem_render.m_camera.look_at(eye, target);
         ecosystem_render.m_camera.set_orbit_point(target);
         ecosystem_render.m_camera.set_perspective(
