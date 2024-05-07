@@ -76,7 +76,7 @@ fn main() {
     // Set up simulation and tracking variables
     let mut simulation = Simulation::init();
     // let mut simulation = Simulation::init_with_height_map(constants::IMPORT_FILE_PATH);
-    let export_terrain = false;
+    let export_terrain = true;
 
     let mut color_mode = ColorMode::Standard;
     let mut path = "".to_string();
@@ -103,7 +103,7 @@ fn main() {
         }
         shader_program.set_used();
         simulation.draw(shader_program.id(), gl::TRIANGLES);
-        // simulation.draw(shader_program.id(), gl::LINES);
+
         unsafe {
             let mut err: gl::types::GLenum = gl::GetError();
             while err != gl::NO_ERROR {
@@ -124,9 +124,9 @@ fn main() {
                 println!("elapsed_secs {elapsed_secs}");
                 simulation.take_time_step(&color_mode);
                 count += 1;
-                // let duration = (0.1 - elapsed_secs) * 1000.0;
-                // println!("sleep duration {duration} ms");
-                // sleep(Duration::from_millis(duration as u64));
+                let duration = (0.25 - elapsed_secs) * 1000.0;
+                println!("sleep duration {duration} ms");
+                sleep(Duration::from_millis(duration as u64));
 
                 // export terrain
                 if export_terrain {

@@ -226,14 +226,15 @@ impl Ecosystem {
     }
 
     pub fn init_sand() -> Self {
-        let sand_height = 1.0;
+        let sand_height = 0.2;
         let mut ecosystem = Self::init();
         Self::add_blanket_sand(&mut ecosystem, sand_height);
 
         // set up wind rose
         let mut wind_rose = WindRose::new(45.0, 10.0, 15.0);
-        // wind_rose.update_wind(180.0, 10.0, 15.0, 1.0);
-        // wind_rose.update_wind(270.0, 10.0, 15.0, 1.0);
+        // wind_rose.update_wind(90.0, 10.0, 15.0, 1.0);
+        wind_rose.update_wind(180.0, 10.0, 15.0, 1.0);
+        wind_rose.update_wind(270.0, 10.0, 15.0, 1.0);
         let mut wind_state = WindState::new();
         wind_state.wind_rose = wind_rose;
         ecosystem.wind_state = Some(wind_state);

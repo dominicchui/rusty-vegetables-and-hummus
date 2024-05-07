@@ -30,33 +30,32 @@ pub(crate) fn export_height_map(ecosystem: &Ecosystem, time_step: u32, path: &st
     )
     .unwrap();
 
-    // todo remove
-    let new_path = format!("{path}/{}-terrain-high-freq.png", time_step);
-    println!("{new_path}");
+    // // todo remove
+    // let new_path = format!("{path}/{}-terrain-high-freq.png", time_step);
+    // println!("{new_path}");
 
-    let buf = build_conv_terrain_map(ecosystem, true);
-    image::save_buffer(
-        new_path,
-        &buf,
-        constants::AREA_SIDE_LENGTH as u32,
-        constants::AREA_SIDE_LENGTH as u32,
-        image::ColorType::Rgb8,
-    )
-    .unwrap();
+    // let buf = build_conv_terrain_map(ecosystem, true);
+    // image::save_buffer(
+    //     new_path,
+    //     &buf,
+    //     constants::AREA_SIDE_LENGTH as u32,
+    //     constants::AREA_SIDE_LENGTH as u32,
+    //     image::ColorType::Rgb8,
+    // )
+    // .unwrap();
 
-    let new_path = format!("{path}/{}-terrain-low-freq.png", time_step);
-    println!("{new_path}");
+    // let new_path = format!("{path}/{}-terrain-low-freq.png", time_step);
+    // println!("{new_path}");
 
-    let buf = build_conv_terrain_map(ecosystem, false);
-    image::save_buffer(
-        new_path,
-        &buf,
-        constants::AREA_SIDE_LENGTH as u32,
-        constants::AREA_SIDE_LENGTH as u32,
-        image::ColorType::Rgb8,
-    )
-    .unwrap();
-
+    // let buf = build_conv_terrain_map(ecosystem, false);
+    // image::save_buffer(
+    //     new_path,
+    //     &buf,
+    //     constants::AREA_SIDE_LENGTH as u32,
+    //     constants::AREA_SIDE_LENGTH as u32,
+    //     image::ColorType::Rgb8,
+    // )
+    // .unwrap();
 }
 
 pub(crate) fn build_height_map(ecosystem: &Ecosystem) -> [u8; constants::NUM_CELLS * 3] {
@@ -91,10 +90,16 @@ pub(crate) fn build_height_map(ecosystem: &Ecosystem) -> [u8; constants::NUM_CEL
     buffer
 }
 
-pub(crate) fn build_conv_terrain_map(ecosystem: &Ecosystem, high_freq: bool) -> [u8; constants::NUM_CELLS * 3] {
+pub(crate) fn build_conv_terrain_map(
+    ecosystem: &Ecosystem,
+    high_freq: bool,
+) -> [u8; constants::NUM_CELLS * 3] {
     let wind_state = ecosystem.wind_state.as_ref().unwrap();
-    let mut heights =
-    if high_freq { wind_state.high_freq_convolution } else {wind_state.low_freq_convolution};
+    let mut heights = if high_freq {
+        wind_state.high_freq_convolution
+    } else {
+        wind_state.low_freq_convolution
+    };
     let mut min_height = f32::MAX;
     let mut max_height = f32::MIN;
     for height in heights {

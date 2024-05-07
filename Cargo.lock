@@ -740,6 +740,8 @@ checksum = "712b7bee292d3d0ac59c5110f826d3d8aaafd8f39e455319acebe06c0eae3e7f"
 dependencies = [
  "imgref",
  "imgref-iter",
+ "rayon",
+ "unique",
 ]
 
 [[package]]
@@ -786,6 +788,12 @@ name = "unicode-ident"
 version = "1.0.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
+
+[[package]]
+name = "unique"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d360722e1f3884f5b14d332185f02ff111f771f0c76a313268fe6af1409aba96"
 
 [[package]]
 name = "vegetables_and_hummus"
