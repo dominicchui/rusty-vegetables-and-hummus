@@ -11,7 +11,7 @@ use rand::distributions::WeightedIndex;
 
 impl Events {
     pub(crate) fn apply_rainfall_event(ecosystem: &mut Ecosystem, index: CellIndex) -> Option<(Events, CellIndex)> {
-        let water_level: f32 = 0.0001*ecosystem[index].get_height();
+        let water_level: f32 = 0.000001*ecosystem[index].get_height();
 
         //TODO: Account for plants intercepting rainfall
 
@@ -127,8 +127,6 @@ impl Events {
             }
 
             if (steps < 1000) {
-                let h = cur_cell.get_height();
-
                 Self::runoff(ecosystem, next_cell_index, water_level, lifted, steps + 1);
             } else {
                 println!("1k steps");

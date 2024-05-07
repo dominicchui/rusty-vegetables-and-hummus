@@ -9,61 +9,6 @@ use rand::Rng;
 
 impl Ecosystem {
     pub fn init_standard() -> Self {
-        // let mut ecosystem = Self::init();
-
-        // // add terrain variation
-        // let height = 2.0;
-        // let cell = &mut ecosystem[CellIndex::new(1, 0)];
-        // cell.add_bedrock(height);
-        // let cell = &mut ecosystem[CellIndex::new(2, 0)];
-        // cell.add_bedrock(height);
-        // let cell = &mut ecosystem[CellIndex::new(3, 0)];
-        // cell.add_bedrock(height);
-        // let cell = &mut ecosystem[CellIndex::new(4, 0)];
-        // cell.add_bedrock(height);
-        // let cell = &mut ecosystem[CellIndex::new(5, 0)];
-        // cell.add_bedrock(height);
-        // let cell = &mut ecosystem[CellIndex::new(1, 1)];
-        // cell.add_bedrock(height);
-        // let cell = &mut ecosystem[CellIndex::new(2, 1)];
-        // cell.add_bedrock(height);
-        // let cell = &mut ecosystem[CellIndex::new(3, 1)];
-        // cell.add_bedrock(height);
-        // let cell = &mut ecosystem[CellIndex::new(4, 1)];
-        // cell.add_bedrock(height);
-        // let cell = &mut ecosystem[CellIndex::new(5, 1)];
-        // cell.add_bedrock(height);
-        // let cell = &mut ecosystem[CellIndex::new(1, 2)];
-        // cell.add_bedrock(height);
-        // let cell = &mut ecosystem[CellIndex::new(5, 2)];
-        // cell.add_bedrock(height);
-        // let cell = &mut ecosystem[CellIndex::new(1, 3)];
-        // cell.add_bedrock(height);
-        // let cell = &mut ecosystem[CellIndex::new(5, 3)];
-        // cell.add_bedrock(height);
-        // ecosystem.update_tets();
-
-        // // add humus
-        // let mut humus_heights = [[0.0; constants::AREA_SIDE_LENGTH]; constants::AREA_SIDE_LENGTH];
-        // for i in 0..constants::AREA_SIDE_LENGTH {
-        //     for j in 0..constants::AREA_SIDE_LENGTH {
-        //         let index = CellIndex::new(i, j);
-        //         let slope = ecosystem.get_slope_at_point(index);
-        //         let humus_height = Self::get_initial_humus_height(slope);
-        //         humus_heights[i][j] = humus_height;
-        //     }
-        // }
-        // for i in 0..constants::AREA_SIDE_LENGTH {
-        //     for j in 0..constants::AREA_SIDE_LENGTH {
-        //         let index = CellIndex::new(i, j);
-        //         let cell = &mut ecosystem[index];
-        //         cell.add_humus(humus_heights[i][j]);
-        //         println!("humus_height {}", humus_heights[i][j]);
-        //     }
-        // }
-
-        // ecosystem
-
         let mut ecosystem = Self::init();
 
         let trees = Trees {
