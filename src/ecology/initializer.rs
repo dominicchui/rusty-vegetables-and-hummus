@@ -37,6 +37,7 @@ impl Ecosystem {
                 perlin_overlay[i][j] = sample_noise as f32;
 
                 cell.trees = Some(trees.clone());
+                cell.add_humus(0.1);
             }
         }
 

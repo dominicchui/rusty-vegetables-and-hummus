@@ -11,7 +11,7 @@ use rand::distributions::WeightedIndex;
 
 impl Events {
     pub(crate) fn apply_rainfall_event(ecosystem: &mut Ecosystem, index: CellIndex) -> Option<(Events, CellIndex)> {
-        let water_level: f32 = 0.000001*ecosystem[index].get_height();
+        let water_level: f32 = 0.00001*ecosystem[index].get_height();
 
         //TODO: Account for plants intercepting rainfall
 
@@ -59,13 +59,17 @@ impl Events {
 
             chosen_slope = slopes[choice];
             next_cell_index = existing_neighbors[choice];
-                
+
             //Erosion
 
             let mut lifted = lifted_material; //**SUM OF THIS** is STV
 
             if (chosen_slope > 0.2) { //LIFT HAPPENS
+
+                //Add water inversely proportional to slope
+                cur_cell.soil_moisture += (0.02/chosen_slope)*water_level;
                 
+                //Lift
                 let sediment_capacity: f32 = constants::KC*water_level; //CS
 
                 let remaining_capacity = sediment_capacity-(lifted[0]+lifted[1]+lifted[2]);
