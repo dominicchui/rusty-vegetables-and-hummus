@@ -94,7 +94,7 @@ impl EcosystemRenderable {
                 );
                 Self::add_tree(
                     center,
-                    cell.get_height_of_trees() / 10.0,
+                    cell.get_height_of_trees(),
                     &mut verts,
                     &mut normals,
                     &mut colors,
@@ -499,37 +499,34 @@ impl EcosystemRenderable {
         }
 
         // add trees and bushes
-        if *color_mode != ColorMode::OnlyBedrock {
-            for i in 0..constants::AREA_SIDE_LENGTH {
-                for j in 0..constants::AREA_SIDE_LENGTH {
-                    let index = CellIndex::new(i, j);
-                    let cell = &self.ecosystem[index];
-                    // let center: Vector3<f32> = Vector3::new(i as f32, j as f32, cell.get_height());
-                    let tree_pos = self.m_tree_positions[i + j * constants::AREA_SIDE_LENGTH];
-                    let center = Vector3::new(
-                        tree_pos.x + i as f32,
-                        tree_pos.y + j as f32,
-                        cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR)
-                            / constants::HEIGHT_RENDER_SCALE,
-                    );
-                    Self::add_tree(
-                        center,
-                        cell.get_height_of_trees() / 10.0,
-                        &mut verts,
-                        &mut normals,
-                        &mut colors,
-                        &mut faces,
-                    );
-                    Self::add_dead(
-                        center,
-                        cell.get_dead_vegetation_biomass() / 500.0,
-                        &mut verts,
-                        &mut normals,
-                        &mut colors,
-                        &mut faces,
-                    );
-                    // Self::add_bush(center, cell.estimate_bush_biomass(), &mut verts, &mut normals, &mut colors, &mut faces);
-                }
+        for i in 0..constants::AREA_SIDE_LENGTH {
+            for j in 0..constants::AREA_SIDE_LENGTH {
+                let index = CellIndex::new(i, j);
+                let cell = &self.ecosystem[index];
+                // let center: Vector3<f32> = Vector3::new(i as f32, j as f32, cell.get_height());
+                let tree_pos = self.m_tree_positions[i + j * constants::AREA_SIDE_LENGTH];
+                let center = Vector3::new(
+                    tree_pos.x + i as f32,
+                    tree_pos.y + j as f32,
+                    cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR),
+                );
+                Self::add_tree(
+                    center,
+                    cell.get_height_of_trees(),
+                    &mut verts,
+                    &mut normals,
+                    &mut colors,
+                    &mut faces,
+                );
+                Self::add_dead(
+                    center,
+                    cell.get_dead_vegetation_biomass() / 500.0,
+                    &mut verts,
+                    &mut normals,
+                    &mut colors,
+                    &mut faces,
+                );
+                // Self::add_bush(center, cell.estimate_bush_biomass(), &mut verts, &mut normals, &mut colors, &mut faces);
             }
         }
 

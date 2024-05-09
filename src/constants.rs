@@ -70,5 +70,14 @@ pub(crate) const PERCENT_SUNNY_DAYS: f32 = 0.75;
 
 pub(crate) const DEFAULT_HUMUS_HEIGHT: f32 = 0.5;
 
+
+pub(crate) const PER_CELL_RAINFALL: f32 = 1151.0;
+
+//Sediment constants idk ask stupid Musgrave
+pub(crate) const KC: f32 = 5.0;
+pub(crate) const KD: f32 = 0.1;
+pub(crate) const KS: f32 = 0.3;
+
 pub(crate) const WIND_DIRECTION: f32 = 45.0; // degrees from north
 pub(crate) const WIND_STRENGTH: f32 = 10.0;
+

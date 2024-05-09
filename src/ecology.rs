@@ -1,5 +1,7 @@
 use bvh::bvh::Bvh;
 use nalgebra::Vector3;
+use rand::Rng;
+use noise::{core::perlin, NoiseFn, Perlin, Seedable};
 
 use crate::{
     constants,
