@@ -19,3 +19,4 @@ rand = "0.8"
 random_choice = "*"
 rayon="1.8"
 sdl2="0.36"
+stackblur-iter = {version = "0.2", features = ["rayon"]}

@@ -318,6 +318,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "imgref"
+version = "1.10.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "44feda355f4159a7c757171a77de25daf6411e217b4cabd03bd6650690468126"
+
+[[package]]
+name = "imgref-iter"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "58112733c0ee178b66dceba49e0445d0b293268719de579d2c7dd4c2290976aa"
+dependencies = [
+ "imgref",
+]
+
+[[package]]
 name = "itertools"
 version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -799,6 +814,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "stackblur-iter"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "712b7bee292d3d0ac59c5110f826d3d8aaafd8f39e455319acebe06c0eae3e7f"
+dependencies = [
+ "imgref",
+ "imgref-iter",
+ "rayon",
+ "unique",
+]
+
+[[package]]
 name = "syn"
 version = "1.0.109"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -844,6 +871,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "3354b9ac3fae1ff6755cb6db53683adb661634f67557942dea4facebec0fee4b"
 
 [[package]]
+name = "unique"
+version = "0.9.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d360722e1f3884f5b14d332185f02ff111f771f0c76a313268fe6af1409aba96"
+
+[[package]]
 name = "vegetables_and_hummus"
 version = "0.1.0"
 dependencies = [
@@ -860,6 +893,7 @@ dependencies = [
  "random_choice",
  "rayon",
  "sdl2",
+ "stackblur-iter",
 ]
 
 [[package]]

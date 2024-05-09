@@ -7,14 +7,17 @@ use crate::{
     camera::Camera,
     constants::{self, TINTS, TINT_THRESHOLD},
     ecology::{Bushes, CellIndex, Ecosystem, Trees},
-    events::Events,
+    events::{wind::get_local_wind, Events},
 };
 
+#[derive(PartialEq)]
 pub(crate) enum ColorMode {
     Standard,
     HypsometricTint,
     Sunlight,
     SoilMoisture,
+    WindField,
+    OnlyBedrock,
 }
 
 pub(crate) struct EcosystemRenderable {
@@ -53,7 +56,8 @@ impl EcosystemRenderable {
             for j in 0..constants::AREA_SIDE_LENGTH {
                 let index = CellIndex::new(i, j);
                 let cell = &ecosystem[index];
-                let height = cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR);
+                let height = cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR)
+                    / constants::HEIGHT_RENDER_SCALE;
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(ecosystem.get_normal(index));
                 colors.push(Self::get_color(&ecosystem, index));
@@ -85,14 +89,9 @@ impl EcosystemRenderable {
                 let center: Vector3<f32> = Vector3::new(
                     i as f32,
                     j as f32,
-                    cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR),
+                    cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR)
+                        / constants::HEIGHT_RENDER_SCALE,
                 );
-                // let tree_pos = ecosystem_render.m_tree_positions[i + j * constants::AREA_SIDE_LENGTH];
-                // let center = Vector3::new(
-                //     tree_pos.x + i as f32,
-                //     tree_pos.y + j as f32,
-                //     cell.get_height(),
-                // );
                 Self::add_tree(
                     center,
                     cell.get_height_of_trees(),
@@ -471,7 +470,13 @@ impl EcosystemRenderable {
                 let index = CellIndex::new(i, j);
                 let cell = &self.ecosystem[index];
                 // make uniform cube cells
-                let height = cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR);
+                let height = if *color_mode == ColorMode::OnlyBedrock {
+                    cell.get_bedrock_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR)
+                        / constants::HEIGHT_RENDER_SCALE
+                } else {
+                    cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR)
+                        / constants::HEIGHT_RENDER_SCALE
+                };
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(self.ecosystem.get_normal(index));
                 match color_mode {
@@ -485,6 +490,10 @@ impl EcosystemRenderable {
                     ColorMode::SoilMoisture => colors.push(
                         Self::get_normalize_soil_moisture_color(&self.ecosystem, index),
                     ),
+                    ColorMode::WindField => {
+                        colors.push(Self::get_wind_field_color(&self.ecosystem, index))
+                    }
+                    ColorMode::OnlyBedrock => colors.push(constants::BEDROCK_COLOR),
                 }
             }
         }
@@ -705,10 +714,28 @@ impl EcosystemRenderable {
 
     fn get_normalize_soil_moisture_color(ecosystem: &Ecosystem, index: CellIndex) -> Vector3<f32> {
         let moisture = Events::compute_moisture(ecosystem, index, 6);
-        if index == CellIndex::new(35, 35) {
-            println!("moisture {moisture}");
-        }
+        // if index == CellIndex::new(35, 35) {
+        //     println!("moisture {moisture}");
+        // }
         Vector3::new((moisture - 0.5) / 2.0, 0.0, moisture / 2.0)
+    }
+
+    fn get_wind_field_color(ecosystem: &Ecosystem, index: CellIndex) -> Vector3<f32> {
+        let (wind_dir, wind_str) = if let Some(wind_state) = &ecosystem.wind_state {
+            get_local_wind(
+                ecosystem,
+                index,
+                wind_state.wind_direction,
+                wind_state.wind_strength,
+            )
+        } else {
+            (constants::WIND_DIRECTION, constants::WIND_STRENGTH)
+        };
+        // convert wind_dir from 0-360 to 0-255
+        let wind_dir = wind_dir / 360.0 * 255.0;
+        // convert wind_str from 0~30 to 0-255
+        let wind_str = wind_str / 30.0 * 255.0;
+        Vector3::new(wind_dir, wind_str, 0.0)
     }
 }
 
@@ -737,6 +764,7 @@ mod tests {
             cells: vec![vec![cell.clone()]],
             tets: vec![],
             bvh: None,
+            wind_state: None,
         };
         let actual: Vector3<f32> = EcosystemRenderable::get_color(&eco, CellIndex::new(0, 0));
         let expected: Vector3<f32> = constants::ROCK_COLOR;

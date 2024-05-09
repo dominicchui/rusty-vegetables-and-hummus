@@ -3,7 +3,10 @@ use nalgebra::Vector3;
 use rand::Rng;
 use noise::{core::perlin, NoiseFn, Perlin, Seedable};
 
-use crate::constants;
+use crate::{
+    constants,
+    events::wind::{WindRose, WindState},
+};
 use std::{
     fmt,
     ops::{Index, IndexMut},
@@ -19,7 +22,9 @@ pub struct Ecosystem {
     pub(crate) cells: Vec<Vec<Cell>>,
     pub(crate) tets: Vec<CellTetrahedron>,
     pub(crate) bvh: Option<Bvh<f32, 3>>,
+    pub(crate) wind_state: Option<WindState>,
 }
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub(crate) struct CellIndex {
     pub(crate) x: usize,
@@ -144,6 +149,7 @@ impl Ecosystem {
             ],
             tets: vec![],
             bvh: None,
+            wind_state: None,
         };
         ecosystem.init_cell_tets();
         ecosystem
@@ -262,21 +268,20 @@ impl Ecosystem {
         }
     }
 
-    // average of slope from point to neighbors
+    // gradient at this point
     pub(crate) fn get_slope_at_point(&self, index: CellIndex) -> f32 {
+        // negative slope between points means point 1 is lower than point 2
+        // looking for largest slope
         let neighbors = Cell::get_neighbors(&index);
-        let mut slope_sum = 0.0;
-        let mut slope_count = 0;
+        let mut max_slope = f32::MIN;
         for neighbor_index in neighbors.as_array().into_iter().flatten() {
-            slope_count += 1;
-            slope_sum += self.get_slope_between_points(index, neighbor_index);
+            let slope = self.get_slope_between_points(index, neighbor_index);
+            if slope > max_slope {
+                max_slope = slope;
+            }
         }
 
-        if slope_count > 0 {
-            slope_sum / slope_count as f32
-        } else {
-            0.0
-        }
+        max_slope
     }
 }
 
