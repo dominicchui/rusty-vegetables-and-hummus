@@ -7,7 +7,7 @@ use noise::{NoiseFn, Perlin};
 use rand::Rng;
 
 impl Ecosystem {
-    pub fn init_standard() -> Self {
+    pub fn init_standard_f() -> Self {
         let mut ecosystem = Self::init();
 
         // add terrain variation
@@ -62,7 +62,7 @@ impl Ecosystem {
         ecosystem
     }
 
-    pub fn init_standard_ianterrain() -> Self {
+    pub fn init_standard() -> Self {
         let mut ecosystem = Self::init();
 
         let trees = Trees {
@@ -90,7 +90,7 @@ impl Ecosystem {
 
                 perlin_overlay[i][j] = sample_noise as f32;
 
-                cell.trees = Some(trees.clone());
+                cell.trees = None;
                 cell.add_humus(0.1);
             }
         }
@@ -109,6 +109,39 @@ impl Ecosystem {
                 ecosystem[c_index].add_bedrock(output / 25.0);
             }
         }
+        ecosystem
+    }
+
+    pub fn init_with_heights(
+        heights: [f32; constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH],
+    ) -> Self {
+        let mut ecosystem = Self::init();
+        for (index, height) in heights.iter().enumerate() {
+            let j = index / constants::AREA_SIDE_LENGTH;
+            let i = index - j * constants::AREA_SIDE_LENGTH;
+            let cell = &mut ecosystem[CellIndex::new(i, j)];
+            cell.add_bedrock(*height);
+        }
+        ecosystem.update_tets();
+
+        // add humus
+        let mut humus_heights = [[0.0; constants::AREA_SIDE_LENGTH]; constants::AREA_SIDE_LENGTH];
+        for (i, heights) in humus_heights.iter_mut().enumerate() {
+            for (j, height) in heights.iter_mut().enumerate() {
+                let index = CellIndex::new(i, j);
+                let slope = ecosystem.get_slope_at_point(index);
+                let humus_height = Self::get_initial_humus_height(slope);
+                *height = humus_height;
+            }
+        }
+        for (i, heights) in humus_heights.iter().enumerate() {
+            for (j, height) in heights.iter().enumerate() {
+                let index = CellIndex::new(i, j);
+                let cell = &mut ecosystem[index];
+                cell.add_humus(*height);
+            }
+        }
+
         ecosystem
     }
 

@@ -5,9 +5,17 @@ use std::ffi::CString;
 
 use crate::{
     camera::Camera,
-    constants,
-    ecology::{Bushes, Cell, CellIndex, Ecosystem, Trees},
+    constants::{self, TINTS, TINT_THRESHOLD},
+    ecology::{Bushes, CellIndex, Ecosystem, Trees},
+    events::Events,
 };
+
+pub(crate) enum ColorMode {
+    Standard,
+    HypsometricTint,
+    Sunlight,
+    SoilMoisture,
+}
 
 pub(crate) struct EcosystemRenderable {
     pub(crate) ecosystem: Ecosystem,
@@ -27,9 +35,9 @@ pub(crate) struct EcosystemRenderable {
 }
 
 impl EcosystemRenderable {
-    pub fn init() -> Self {
-        let mut ecosystem = Ecosystem::init_standard();
-        //ecosystem.recompute_sunlight();
+    pub fn init(mut ecosystem: Ecosystem) -> Self {
+        println!("Computing sunlight...");
+        ecosystem.recompute_sunlight();
 
         // initialize based on the cell grid of the ecosystem
         let num_cells = constants::AREA_SIDE_LENGTH * constants::AREA_SIDE_LENGTH;
@@ -45,7 +53,7 @@ impl EcosystemRenderable {
             for j in 0..constants::AREA_SIDE_LENGTH {
                 let index = CellIndex::new(i, j);
                 let cell = &ecosystem[index];
-                let height = cell.get_height();
+                let height = cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR);
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(ecosystem.get_normal(index));
                 colors.push(Self::get_color(&ecosystem, index));
@@ -74,7 +82,11 @@ impl EcosystemRenderable {
             for j in 0..constants::AREA_SIDE_LENGTH {
                 let index = CellIndex::new(i, j);
                 let cell = &ecosystem[index];
-                let center: Vector3<f32> = Vector3::new(i as f32, j as f32, cell.get_height());
+                let center: Vector3<f32> = Vector3::new(
+                    i as f32,
+                    j as f32,
+                    cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR),
+                );
                 // let tree_pos = ecosystem_render.m_tree_positions[i + j * constants::AREA_SIDE_LENGTH];
                 // let center = Vector3::new(
                 //     tree_pos.x + i as f32,
@@ -83,7 +95,7 @@ impl EcosystemRenderable {
                 // );
                 Self::add_tree(
                     center,
-                    cell.get_height_of_trees() / 10.0,
+                    cell.get_height_of_trees(),
                     &mut verts,
                     &mut normals,
                     &mut colors,
@@ -123,7 +135,9 @@ impl EcosystemRenderable {
             let mut rng = rand::thread_rng();
             let x_rand: f32 = rng.gen::<f32>() * 0.7 - 0.5;
             let y_rand: f32 = rng.gen::<f32>() * 0.7 - 0.5;
-            ecosystem_render.m_tree_positions.push(Vector2::new(x_rand, y_rand));
+            ecosystem_render
+                .m_tree_positions
+                .push(Vector2::new(x_rand, y_rand));
         }
 
         // Initialize camera in reasonable location
@@ -134,8 +148,8 @@ impl EcosystemRenderable {
         let eye: Vector3<f32> = center // Vector3::new(0.0, 15.0, 15.0);
         + Vector3::new(
             0.0,
-            1.5 * constants::AREA_SIDE_LENGTH as f32,
-            1.5 * constants::AREA_SIDE_LENGTH as f32,
+            1.0 * constants::AREA_SIDE_LENGTH as f32,
+            2.0 * constants::AREA_SIDE_LENGTH as f32,
         );
         let target: Vector3<f32> = center;
         // println!("center {center:?}");
@@ -447,7 +461,7 @@ impl EcosystemRenderable {
         }
     }
 
-    pub fn update_vertices(&mut self) {
+    pub fn update_vertices(&mut self, color_mode: &ColorMode) {
         let mut verts: Vec<Vector3<f32>> = vec![];
         let mut normals: Vec<Vector3<f32>> = vec![];
         let mut colors: Vec<Vector3<f32>> = vec![];
@@ -457,10 +471,21 @@ impl EcosystemRenderable {
                 let index = CellIndex::new(i, j);
                 let cell = &self.ecosystem[index];
                 // make uniform cube cells
-                let height = cell.get_height();
+                let height = cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR);
                 verts.push(Vector3::new(i as f32, j as f32, height));
                 normals.push(self.ecosystem.get_normal(index));
-                colors.push(Self::get_color(&self.ecosystem, index));
+                match color_mode {
+                    ColorMode::Standard => colors.push(Self::get_color(&self.ecosystem, index)),
+                    ColorMode::HypsometricTint => {
+                        colors.push(Self::get_hypsometric_color(&self.ecosystem, index))
+                    }
+                    ColorMode::Sunlight => {
+                        colors.push(Self::get_sunlight_color(&self.ecosystem, index))
+                    }
+                    ColorMode::SoilMoisture => colors.push(
+                        Self::get_normalize_soil_moisture_color(&self.ecosystem, index),
+                    ),
+                }
             }
         }
 
@@ -474,11 +499,11 @@ impl EcosystemRenderable {
                 let center = Vector3::new(
                     tree_pos.x + i as f32,
                     tree_pos.y + j as f32,
-                    cell.get_height(),
+                    cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR),
                 );
                 Self::add_tree(
                     center,
-                    cell.get_height_of_trees() / 10.0,
+                    cell.get_height_of_trees(),
                     &mut verts,
                     &mut normals,
                     &mut colors,
@@ -586,12 +611,13 @@ impl EcosystemRenderable {
         if let Some(grass) = &ecosystem[index].grasses {
             // use sigmoid interpolation
             // 1/(1+e^-(7x+4))
-            let grass_constant = 0.4;
+            let grass_constant = 1.0;
             let alpha = 1.0
-                / (f32::powf(
-                    std::f32::consts::E,
-                    -7.0 * (grass.coverage_density * grass_constant) + 4.0,
-                ));
+                / (1.0
+                    + f32::powf(
+                        std::f32::consts::E,
+                        -7.0 * (grass.coverage_density * grass_constant) + 4.0,
+                    ));
             color = color * (1.0 - alpha) + constants::GRASS_COLOR * alpha;
         }
 
@@ -607,7 +633,7 @@ impl EcosystemRenderable {
         let cell = &ecosystem[index];
         let mut rock_amt = cell.get_rock_height();
         let mut sand_amt = cell.get_sand_height();
-        let mut humus_amt = cell.get_humus_height() * 30.0; // increase humus color weighting
+        let mut humus_amt = cell.get_humus_height() * 5.0; // increase humus color weighting
         let height = rock_amt + sand_amt + humus_amt;
         // println!("rocks_height {rock_amt}");
         // println!("sand_amt {sand_amt}");
@@ -623,6 +649,66 @@ impl EcosystemRenderable {
                 + sand_amt * constants::SAND_COLOR
                 + humus_amt * constants::HUMUS_COLOR,
         )
+    }
+
+    pub(crate) fn get_hypsometric_color(ecosystem: &Ecosystem, index: CellIndex) -> Vector3<f32> {
+        let height = ecosystem[index].get_height();
+        Self::get_hypsometric_color_helper(height, true)
+    }
+
+    pub(crate) fn get_hypsometric_color_helper(height: f32, normalize: bool) -> Vector3<f32> {
+        // todo make programmatic
+        // readjust height by scaling factor
+        // todo improve hacky way of normalizing heights between 0 and 255 (10.0 is a magic number to have padding for bedrock erosion)
+        let adj_height = if normalize {
+            (height - constants::DEFAULT_BEDROCK_HEIGHT + 10.0)
+                * (1.0 / constants::HEIGHT_SCALING_FACTOR)
+        } else {
+            height
+        };
+        if adj_height < TINT_THRESHOLD[1] {
+            let relative = adj_height - TINT_THRESHOLD[0];
+            let threshold_range = TINT_THRESHOLD[1] - TINT_THRESHOLD[0];
+            let alpha = relative / threshold_range;
+            let r = (TINTS[0][0] as f32 * (1.0 - alpha) + TINTS[1][0] as f32 * alpha) / 255.0;
+            let g = (TINTS[0][1] as f32 * (1.0 - alpha) + TINTS[1][1] as f32 * alpha) / 255.0;
+            let b = (TINTS[0][2] as f32 * (1.0 - alpha) + TINTS[1][2] as f32 * alpha) / 255.0;
+            Vector3::new(r, g, b)
+        } else if adj_height < TINT_THRESHOLD[2] {
+            let relative = adj_height - TINT_THRESHOLD[1];
+            let threshold_range = TINT_THRESHOLD[2] - TINT_THRESHOLD[1];
+            let alpha = relative / threshold_range;
+            let r = (TINTS[1][0] as f32 * (1.0 - alpha) + TINTS[2][0] as f32 * alpha) / 255.0;
+            let g = (TINTS[1][1] as f32 * (1.0 - alpha) + TINTS[2][1] as f32 * alpha) / 255.0;
+            let b = (TINTS[1][2] as f32 * (1.0 - alpha) + TINTS[2][2] as f32 * alpha) / 255.0;
+            Vector3::new(r, g, b)
+        } else {
+            let relative = adj_height - TINT_THRESHOLD[2];
+            let threshold_range = TINT_THRESHOLD[3] - TINT_THRESHOLD[2];
+            let alpha = relative / threshold_range;
+            let r = (TINTS[2][0] as f32 * (1.0 - alpha) + TINTS[3][0] as f32 * alpha) / 255.0;
+            let g = (TINTS[2][1] as f32 * (1.0 - alpha) + TINTS[3][1] as f32 * alpha) / 255.0;
+            let b = (TINTS[2][2] as f32 * (1.0 - alpha) + TINTS[3][2] as f32 * alpha) / 255.0;
+            Vector3::new(r, g, b)
+        }
+    }
+
+    // returns a color based on the average sunlight of the cell
+    fn get_sunlight_color(ecosystem: &Ecosystem, index: CellIndex) -> Vector3<f32> {
+        let cell = &ecosystem[index];
+        let sunlight_hours = cell.hours_of_sunlight;
+        let average: f32 = sunlight_hours.into_iter().sum::<f32>() / 12.0;
+
+        let color = average / 16.0; // assumption: max hours is 16
+        Vector3::new(color, color, color)
+    }
+
+    fn get_normalize_soil_moisture_color(ecosystem: &Ecosystem, index: CellIndex) -> Vector3<f32> {
+        let moisture = Events::compute_moisture(ecosystem, index, 6);
+        if index == CellIndex::new(35, 35) {
+            println!("moisture {moisture}");
+        }
+        Vector3::new((moisture - 0.5) / 2.0, 0.0, moisture / 2.0)
     }
 }
 
@@ -650,6 +736,7 @@ mod tests {
         let mut eco = Ecosystem {
             cells: vec![vec![cell.clone()]],
             tets: vec![],
+            bvh: None,
         };
         let actual: Vector3<f32> = EcosystemRenderable::get_color(&eco, CellIndex::new(0, 0));
         let expected: Vector3<f32> = constants::ROCK_COLOR;

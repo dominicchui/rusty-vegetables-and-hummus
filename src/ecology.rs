@@ -1,3 +1,4 @@
+use bvh::bvh::Bvh;
 use nalgebra::Vector3;
 use rand::Rng;
 use noise::{core::perlin, NoiseFn, Perlin, Seedable};
@@ -17,11 +18,12 @@ pub struct Ecosystem {
     // Array of structs
     pub(crate) cells: Vec<Vec<Cell>>,
     pub(crate) tets: Vec<CellTetrahedron>,
+    pub(crate) bvh: Option<Bvh<f32, 3>>,
 }
 #[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Copy, Hash)]
 pub(crate) struct CellIndex {
-    x: usize,
-    y: usize,
+    pub(crate) x: usize,
+    pub(crate) y: usize,
 }
 
 impl fmt::Display for CellIndex {
@@ -141,6 +143,7 @@ impl Ecosystem {
                 constants::AREA_SIDE_LENGTH
             ],
             tets: vec![],
+            bvh: None,
         };
         ecosystem.init_cell_tets();
         ecosystem

@@ -1,12 +1,10 @@
-use std::collections::HashMap;
-
 use super::Events;
 use crate::{
     constants,
-    ecology::{Cell, CellIndex, Ecosystem, Neighbors},
+    ecology::{Cell, CellIndex, Ecosystem},
 };
 
-use rand::{distributions::Distribution, Rng};
+use rand::distributions::Distribution;
 use rand::distributions::WeightedIndex;
 
 impl Events {
@@ -46,6 +44,11 @@ impl Events {
 
         let cur_cell = &mut ecosystem[index];
 
+        //Soil absorption
+        // if (steps == 0) {
+        //     cur_cell.soil_moisture = cur_cell.get_humus_height()*1000.0;
+        // }
+
         if slopes.len() != 0 {
 
             //Decide which cell the water will flow to
@@ -66,8 +69,8 @@ impl Events {
 
             if (chosen_slope > 0.2) { //LIFT HAPPENS
 
-                //Add water inversely proportional to slope
-                cur_cell.soil_moisture += (0.02/chosen_slope)*water_level;
+                //Soil 2
+                cur_cell.soil_moisture += (0.2/chosen_slope)*cur_cell.get_humus_height()*70000.0;
                 
                 //Lift
                 let sediment_capacity: f32 = constants::KC*water_level; //CS
