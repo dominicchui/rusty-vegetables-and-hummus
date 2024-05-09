@@ -41,7 +41,11 @@ fn main() {
     gl_attr.set_context_version(4, 1);
 
     let window = video_subsystem
-        .window("Hummus", 900, 700)
+        .window(
+            "Hummus",
+            constants::SCREEN_WIDTH as u32,
+            constants::SCREEN_HEIGHT as u32,
+        )
         .opengl()
         .resizable()
         .build()
@@ -74,9 +78,9 @@ fn main() {
     let shader_program = render_gl::Program::from_shaders(&[vert_shader, frag_shader]).unwrap();
 
     // Set up simulation and tracking variables
-    let mut simulation = Simulation::init();
-    // let mut simulation = Simulation::init_with_height_map(constants::IMPORT_FILE_PATH);
-    let export_terrain = true;
+    // let mut simulation = Simulation::init();
+    let mut simulation = Simulation::init_with_height_map(constants::IMPORT_FILE_PATH);
+    let export_terrain = false;
 
     let mut color_mode = ColorMode::Standard;
     let mut path = "".to_string();
@@ -124,7 +128,7 @@ fn main() {
                 println!("elapsed_secs {elapsed_secs}");
                 simulation.take_time_step(&color_mode);
                 count += 1;
-                let duration = (0.25 - elapsed_secs) * 1000.0;
+                let duration = (0.1 - elapsed_secs) * 1000.0;
                 println!("sleep duration {duration} ms");
                 sleep(Duration::from_millis(duration as u64));
 
@@ -206,6 +210,14 @@ fn main() {
         } else if new_keys.contains(&Keycode::Num4) {
             // change color mode
             color_mode = ColorMode::SoilMoisture;
+            simulation.change_color_mode(&color_mode);
+        } else if new_keys.contains(&Keycode::Num5) {
+            // change color mode
+            color_mode = ColorMode::WindField;
+            simulation.change_color_mode(&color_mode);
+        } else if new_keys.contains(&Keycode::Num6) {
+            // change color mode
+            color_mode = ColorMode::OnlyBedrock;
             simulation.change_color_mode(&color_mode);
         }
         let dirs = keys.into_iter().filter_map(convert_key_to_dir).collect();

@@ -1,3 +1,5 @@
+use itertools::Itertools;
+
 use crate::{
     constants,
     ecology::{CellIndex, Ecosystem},
@@ -30,7 +32,7 @@ pub(crate) fn export_height_map(ecosystem: &Ecosystem, time_step: u32, path: &st
     )
     .unwrap();
 
-    // // todo remove
+    // todo remove
     // let new_path = format!("{path}/{}-terrain-high-freq.png", time_step);
     // println!("{new_path}");
 
@@ -96,23 +98,26 @@ pub(crate) fn build_conv_terrain_map(
 ) -> [u8; constants::NUM_CELLS * 3] {
     let wind_state = ecosystem.wind_state.as_ref().unwrap();
     let mut heights = if high_freq {
-        wind_state.high_freq_convolution
+        wind_state.high_freq_convolution.clone()
     } else {
-        wind_state.low_freq_convolution
+        wind_state.low_freq_convolution.clone()
     };
     let mut min_height = f32::MAX;
     let mut max_height = f32::MIN;
-    for height in heights {
-        if height < min_height {
-            min_height = height;
+    for height in &heights {
+        if *height < min_height {
+            min_height = *height;
         }
-        if height > max_height {
-            max_height = height;
+        if *height > max_height {
+            max_height = *height;
         }
     }
     // normalize heights to fit within 256 values
     let norm_factor = 256.0 / (max_height - min_height);
-    heights = heights.map(|v| (v - min_height) * norm_factor);
+    heights = heights
+        .iter()
+        .map(|v| (v - min_height) * norm_factor)
+        .collect_vec();
 
     // convert to greyscale rgb
     let mut buffer = [0; constants::NUM_CELLS * 3];

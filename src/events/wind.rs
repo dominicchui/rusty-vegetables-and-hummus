@@ -1,3 +1,4 @@
+use itertools::Itertools;
 use nalgebra::Vector2;
 use rand::Rng;
 use stackblur_iter::{
@@ -13,12 +14,13 @@ use crate::{
 
 use super::Events;
 
-const SALTATION_DISTANCE_FACTOR: f32 = 1.0;
-const CARRYING_CAPACITY: f32 = 0.2; // each wind event can carry this much height of sand
+const USE_SIMPLE_WIND: bool = false;
+const SALTATION_DISTANCE_FACTOR: f32 = 0.5;
+const CARRYING_CAPACITY: f32 = 0.1; // each wind event can carry this much height of sand
 const REPTATION_HEIGHT: f32 = 0.1;
 const VENTURI_FACTOR: f32 = 5e-3;
-const HIGH_FREQ_KERNEL_RADIUS: usize = 11;
-const LOW_FREQ_KERNEL_RADIUS: usize = 25;
+const HIGH_FREQ_KERNEL_RADIUS: usize = 20;
+const LOW_FREQ_KERNEL_RADIUS: usize = 80;
 const HIGH_FREQ_DEVIATION: f32 = 5.0;
 const LOW_FREQ_DEVIATION: f32 = 30.0;
 const HIGH_FREQ_WEIGHT: f32 = 0.2;
@@ -28,8 +30,8 @@ pub(crate) struct WindState {
     pub(crate) wind_rose: WindRose,
     pub(crate) wind_direction: f32,
     pub(crate) wind_strength: f32,
-    pub(crate) high_freq_convolution: [f32; constants::NUM_CELLS],
-    pub(crate) low_freq_convolution: [f32; constants::NUM_CELLS],
+    pub(crate) high_freq_convolution: Vec<f32>,
+    pub(crate) low_freq_convolution: Vec<f32>,
 }
 
 impl WindState {
@@ -42,8 +44,8 @@ impl WindState {
             ),
             wind_direction: constants::WIND_DIRECTION,
             wind_strength: constants::WIND_STRENGTH,
-            high_freq_convolution: [0.0; constants::NUM_CELLS],
-            low_freq_convolution: [0.0; constants::NUM_CELLS],
+            high_freq_convolution: vec![0.0; constants::NUM_CELLS],
+            low_freq_convolution: vec![0.0; constants::NUM_CELLS],
         }
     }
 }
@@ -124,6 +126,20 @@ impl Events {
         ecosystem: &mut Ecosystem,
         index: CellIndex,
     ) -> Option<(Events, CellIndex)> {
+        // Saltation
+        // 1) lift a small amount of sand
+        let cell = &mut ecosystem[index];
+        let sand_height = cell.get_sand_height();
+        if sand_height == 0.0 {
+            return None;
+        }
+        let vegetation_density = f32::min(cell.estimate_vegetation_density() / 3.0, 1.0);
+        let moved_height = f32::max(
+            f32::min(CARRYING_CAPACITY, sand_height) * (1.0 - vegetation_density),
+            0.0,
+        );
+        cell.remove_sand(moved_height);
+
         let (wind_dir, wind_str) = if let Some(wind_state) = &ecosystem.wind_state {
             get_local_wind(
                 ecosystem,
@@ -131,21 +147,15 @@ impl Events {
                 wind_state.wind_direction,
                 wind_state.wind_strength,
             )
-            // (wind_state.wind_direction, wind_state.wind_strength)
         } else {
             (constants::WIND_DIRECTION, constants::WIND_STRENGTH)
         };
 
-        // Saltation
-        // 1) lift a small amount of sand
-        let cell = &mut ecosystem[index];
-        let sand_height = cell.get_sand_height();
-        let moved_height = f32::min(CARRYING_CAPACITY, sand_height);
-        cell.remove_sand(moved_height);
-
         // 2) transport sand to target cell
         let wind_shadowing = get_wind_shadowing(ecosystem, index, wind_dir);
-        // let local_strength = get_local_sand_strength(wind_str, wind_shadowing);
+        // if index == CellIndex::new(50, 50) {
+        //     println!("wind shadowing {wind_shadowing}, wind_dir {wind_dir}, wind_str {wind_str}");
+        // }
         let distance = get_saltation_distance(wind_str);
         let direction = get_wind_direction_vector(wind_dir);
         let target_vec = direction * distance;
@@ -221,20 +231,27 @@ fn get_wind_direction_vector(wind_angle: f32) -> Vector2<f32> {
 }
 
 fn get_wind_direction_angle(wind_vec: Vector2<f32>) -> f32 {
-    f32::atan2(wind_vec.y, wind_vec.x).to_degrees() + 180.0
+    f32::atan2(wind_vec.y, wind_vec.x).to_degrees()
 }
 
-fn get_local_wind(
+pub(crate) fn get_local_wind(
     ecosystem: &Ecosystem,
     index: CellIndex,
     wind_dir: f32,
     wind_str: f32,
 ) -> (f32, f32) {
+    if USE_SIMPLE_WIND {
+        return (wind_dir, wind_str);
+    }
+
     // warp wind based on local relief
     // Venturi effects acceleratase wind at higher altitudes
     let local_wind_str = wind_str * (1.0 + VENTURI_FACTOR * ecosystem[index].get_height());
     let local_wind_dir = wind_dir;
     let mut local_wind_vec = get_wind_direction_vector(local_wind_dir) * local_wind_str;
+    // if index == CellIndex::new(50, 50) {
+    //     println!("venturi wind {local_wind_str}, vec {local_wind_vec}");
+    // }
 
     // change wind direction based on terrain gradient
     // ωi ◦v(p,t) = (1−α)v(p,t)+αkT i ∇Ti⊥(p) α = ∥∇Ti(p)∥
@@ -256,6 +273,10 @@ fn get_local_wind(
 
     local_wind_vec = warp_high_freq * HIGH_FREQ_WEIGHT + warp_low_freq * LOW_FREQ_WEIGHT;
 
+    // if index == CellIndex::new(50, 50) {
+    //     println!("warped wind {local_wind_vec}");
+    // }
+
     // add wind shadowing
     let wind_shadowing = get_wind_shadowing(ecosystem, index, wind_dir);
     local_wind_vec = get_local_sand_strength_vec(local_wind_vec, wind_shadowing);
@@ -267,7 +288,7 @@ fn get_local_wind(
 }
 
 pub(crate) fn convolve_terrain(ecosystem: &mut Ecosystem) {
-    let mut heights = [0.0; constants::NUM_CELLS];
+    let mut heights = vec![0.0; constants::NUM_CELLS];
     let mut min_height = f32::MAX;
     let mut max_height = f32::MIN;
     for i in 0..constants::AREA_SIDE_LENGTH {
@@ -284,7 +305,10 @@ pub(crate) fn convolve_terrain(ecosystem: &mut Ecosystem) {
     }
     // normalize heights to fit within 256 values
     let norm_factor = 256.0 / (max_height - min_height);
-    heights = heights.map(|v| (v - min_height) * norm_factor);
+    heights = heights
+        .iter()
+        .map(|v| (v - min_height) * norm_factor)
+        .collect_vec();
 
     let mut argb_heights: [u32; constants::NUM_CELLS] = [0; constants::NUM_CELLS];
     for (i, height) in heights.iter().enumerate() {
@@ -299,10 +323,10 @@ pub(crate) fn convolve_terrain(ecosystem: &mut Ecosystem) {
         constants::AREA_SIDE_LENGTH,
         constants::AREA_SIDE_LENGTH,
     );
-    par_blur_argb(&mut img.as_mut(), HIGH_FREQ_KERNEL_RADIUS);
+    blur_argb(&mut img.as_mut(), HIGH_FREQ_KERNEL_RADIUS);
 
     // convert back to f32 heights
-    let mut high_freq_terrain = [0.0; constants::NUM_CELLS];
+    let mut high_freq_terrain = vec![0.0; constants::NUM_CELLS];
     for (i, pixel) in img.buf().iter().enumerate() {
         high_freq_terrain[i] = (*pixel as u8) as f32 * (1.0 / norm_factor);
     }
@@ -318,7 +342,7 @@ pub(crate) fn convolve_terrain(ecosystem: &mut Ecosystem) {
     blur_argb(&mut img.as_mut(), LOW_FREQ_KERNEL_RADIUS);
 
     // convert back to f32 heights
-    let mut low_freq_terrain = [0.0; constants::NUM_CELLS];
+    let mut low_freq_terrain = vec![0.0; constants::NUM_CELLS];
     for (i, pixel) in img.buf().iter().enumerate() {
         low_freq_terrain[i] = (*pixel as u8) as f32 * (1.0 / norm_factor);
     }
@@ -409,10 +433,14 @@ fn get_wind_shadowing(ecosystem: &Ecosystem, index: CellIndex, wind_angle: f32) 
             steepest_slope = slope;
         }
     }
+    // if index == CellIndex::new(50,50) {
+    //     println!("steepest_slope {steepest_slope}");
+    // }
     if steepest_slope < 0.0 {
         let angle = f32::atan(steepest_slope).to_degrees();
         let theta_min = -10.0;
         let theta_max = -15.0;
+        // f32::max(f32::min((angle - theta_min) / (theta_max - theta_min), 1.0), 0.0)
         f32::min((angle - theta_min) / (theta_max - theta_min), 1.0)
     } else {
         0.0

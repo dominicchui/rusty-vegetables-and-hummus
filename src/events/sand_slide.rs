@@ -63,11 +63,12 @@ impl Events {
         if sand_height > 0.0 {
             let origin_pos = ecosystem.get_position_of_cell(&origin);
             let target_pos = ecosystem.get_position_of_cell(&target);
-            let ideal_height = Events::compute_ideal_slide_height(
-                origin_pos,
-                target_pos,
-                constants::CRITICAL_ANGLE_SAND,
-            );
+            // vegetation increases critical angle
+            let vegetation_density = f32::min(cell.estimate_vegetation_density() / 3.0, 1.0);
+            let critical_angle = constants::CRITICAL_ANGLE_SAND * (1.0 - vegetation_density)
+                + constants::CRITICAL_ANGLE_SAND_WITH_VEGETATION * vegetation_density;
+            let ideal_height =
+                Events::compute_ideal_slide_height(origin_pos, target_pos, critical_angle);
 
             let non_sand_height = cell.get_height() - sand_height;
 

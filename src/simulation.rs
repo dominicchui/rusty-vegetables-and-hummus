@@ -16,7 +16,7 @@ pub struct Simulation {
 
 impl Simulation {
     pub fn init() -> Self {
-        let ecosystem = Ecosystem::init_sand();
+        let ecosystem = Ecosystem::init_standard_ianterrain();
         Simulation {
             ecosystem: EcosystemRenderable::init(ecosystem),
         }
@@ -51,15 +51,15 @@ impl Simulation {
         for i in vec {
             // apply random event
             let mut events = [
-                // Events::Lightning,
-                // Events::ThermalStress,
+                Events::Lightning,
+                Events::ThermalStress,
                 Events::SandSlide,
-                // Events::RockSlide,
-                // Events::HumusSlide,
-                // Events::VegetationTrees,
-                // Events::VegetationBushes,
-                // Events::VegetationGrasses,
-                Events::Wind,
+                Events::RockSlide,
+                Events::HumusSlide,
+                Events::VegetationTrees,
+                Events::VegetationBushes,
+                Events::VegetationGrasses,
+                // Events::Wind,
             ];
             events.shuffle(&mut thread_rng());
             // println!("Events {events:?}");
@@ -75,8 +75,20 @@ impl Simulation {
         }
 
         // println!("humus heights {humus_heights:?}");
-        // let index = CellIndex::new(50, 50);
+        let index = CellIndex::new(10, 10);
         // let cell = &self.ecosystem.ecosystem[index];
+        let (wind_dir, wind_str) = if let Some(wind_state) = &self.ecosystem.ecosystem.wind_state {
+            crate::events::wind::get_local_wind(
+                &self.ecosystem.ecosystem,
+                index,
+                wind_state.wind_direction,
+                wind_state.wind_strength,
+            )
+        } else {
+            println!("default wind");
+            (constants::WIND_DIRECTION, constants::WIND_STRENGTH)
+        };
+        println!("wind_dir {wind_dir}, wind_str {wind_str}");
         // println!("rocks_height {}", cell.get_rock_height());
         // println!("humus_height {}", cell.get_humus_height());
 
