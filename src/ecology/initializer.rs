@@ -3,12 +3,10 @@ use rand::Rng;
 use crate::{
     constants,
     ecology::{CellIndex, Ecosystem, Trees},
-    events::wind::{self, WindRose, WindState},
+    events::wind::{WindRose, WindState},
 };
 
 use noise::{NoiseFn, Perlin};
-use rand::Rng;
-use super::Grasses;
 
 impl Ecosystem {
     pub fn init_standard_f() -> Self {

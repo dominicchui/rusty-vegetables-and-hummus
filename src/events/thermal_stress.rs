@@ -1,6 +1,6 @@
 // a constant to control the probability of a thermal stress event
 // higher is more likely
-const FRACTURE_CONSTANT: f32 = 0.001;
+const FRACTURE_CONSTANT: f32 = 0.01;
 // how much sand and humus dampen the probability of a thermal stress event
 const GRANULAR_DAMPENING_CONSTANT: f32 = 0.5;
 // how much vegetation density dampens the probability of a thermal stress event

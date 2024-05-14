@@ -4,16 +4,16 @@ pub(crate) const SCREEN_WIDTH: usize = 900;
 pub(crate) const SCREEN_HEIGHT: usize = 700;
 pub(crate) const SPEED: f32 = AREA_SIDE_LENGTH as f32;
 
-pub(crate) const AREA_SIDE_LENGTH: usize = 256; // in cells
+pub(crate) const AREA_SIDE_LENGTH: usize = 100; // in cells
 pub(crate) const CELL_SIDE_LENGTH: f32 = 10.0; // in meters
 pub(crate) const DEFAULT_BEDROCK_HEIGHT: f32 = 100.0; // in meters
 
-pub(crate) const IMPORT_FILE_PATH: &str = "./resources/height_maps/berkshires_3-256.png";
+pub(crate) const IMPORT_FILE_PATH: &str = "./resources/height_maps/berkshires_2-100.png";
 // how to convert from import pixel intensity to height
-pub(crate) const HEIGHT_SCALING_FACTOR: f32 = AREA_SIDE_LENGTH as f32 / 255.0 / 2.0;
+pub(crate) const HEIGHT_SCALING_FACTOR: f32 = AREA_SIDE_LENGTH as f32 / 255.0 / 5.0;
 
 // how many units of height correspond to one unit in the z direction
-pub(crate) const HEIGHT_RENDER_SCALE: f32 = 2.0;
+pub(crate) const HEIGHT_RENDER_SCALE: f32 = 1.0;
 
 // Providence RI
 pub(crate) const LATITUDE: f32 = 41.8;

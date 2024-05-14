@@ -508,11 +508,11 @@ impl EcosystemRenderable {
                 let center = Vector3::new(
                     tree_pos.x + i as f32,
                     tree_pos.y + j as f32,
-                    cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR),
+                    cell.get_height() * (1.0 - constants::HEIGHT_SCALING_FACTOR)/ constants::HEIGHT_RENDER_SCALE,
                 );
                 Self::add_tree(
                     center,
-                    cell.get_height_of_trees(),
+                    cell.get_height_of_trees() / 10.0,
                     &mut verts,
                     &mut normals,
                     &mut colors,

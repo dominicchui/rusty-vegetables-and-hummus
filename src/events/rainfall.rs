@@ -133,7 +133,7 @@ impl Events {
                 lifted[2] -= deposited_sand;
             }
 
-            if (steps < 1000) {
+            if steps < 1000 {
                 Self::runoff(ecosystem, next_cell_index, water_level, lifted, steps + 1);
             } else {
                 println!("1k steps");
