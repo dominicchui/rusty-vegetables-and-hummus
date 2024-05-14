@@ -4,6 +4,8 @@ mod rock_slide;
 mod sand_slide;
 mod thermal_stress;
 mod vegetation;
+mod rainfall;
+pub(crate) mod wind;
 
 use nalgebra::Vector3;
 
@@ -24,6 +26,7 @@ pub(crate) enum Events {
     VegetationTrees,
     VegetationBushes,
     VegetationGrasses,
+    Wind,
 }
 
 impl Events {
@@ -32,7 +35,7 @@ impl Events {
         let mut event_option = Some((self, index));
         while let Some((event, index)) = event_option {
             event_option = match event {
-                Events::Rainfall => todo!(),
+                Events::Rainfall => Self::apply_rainfall_event(ecosystem, index),
                 Events::ThermalStress => Self::apply_thermal_stress_event(ecosystem, index),
                 Events::Lightning => Self::apply_lightning_event(ecosystem, index),
                 Events::RockSlide => Self::apply_rock_slide_event(ecosystem, index),
@@ -42,6 +45,7 @@ impl Events {
                 Events::VegetationTrees => Self::apply_trees_event(ecosystem, index),
                 Events::VegetationBushes => Self::apply_bushes_event(ecosystem, index),
                 Events::VegetationGrasses => Self::apply_grasses_event(ecosystem, index),
+                Events::Wind => Self::apply_wind_event(ecosystem, index),
             };
         }
     }

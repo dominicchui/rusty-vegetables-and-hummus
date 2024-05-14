@@ -1,5 +1,6 @@
+use export::export_maps;
 use nalgebra::Vector3;
-use render::EcosystemRenderable;
+use render::{ColorMode, EcosystemRenderable};
 use sdl2::{
     keyboard::Keycode,
     sys::{SDL_GetPerformanceCounter, SDL_GetPerformanceFrequency},
@@ -7,10 +8,14 @@ use sdl2::{
 use simulation::Simulation;
 use std::{collections::HashSet, ffi::CString, thread::sleep, time::Duration};
 
+use crate::export::export_height_map;
+
 mod camera;
 mod constants;
 mod ecology; // apparently naming this "ecosystem" breaks rust analyzer :(
 mod events;
+mod export;
+mod import;
 mod render;
 mod render_gl;
 mod simulation;
@@ -36,7 +41,11 @@ fn main() {
     gl_attr.set_context_version(4, 1);
 
     let window = video_subsystem
-        .window("Hummus", 900, 700)
+        .window(
+            "Hummus",
+            constants::SCREEN_WIDTH as u32,
+            constants::SCREEN_HEIGHT as u32,
+        )
         .opengl()
         .resizable()
         .build()
@@ -68,9 +77,13 @@ fn main() {
     .unwrap();
     let shader_program = render_gl::Program::from_shaders(&[vert_shader, frag_shader]).unwrap();
 
-    let mut simulation = Simulation::init();
+    // Set up simulation and tracking variables
+    // let mut simulation = Simulation::init();
+    let mut simulation = Simulation::init_with_height_map(constants::IMPORT_FILE_PATH);
+    let export_terrain = false;
 
-    // main loop
+    let mut color_mode = ColorMode::Standard;
+    let mut path = "".to_string();
     let mut count = 0;
     let mut paused = true;
     let mut prev_keys = HashSet::new();
@@ -94,7 +107,7 @@ fn main() {
         }
         shader_program.set_used();
         simulation.draw(shader_program.id(), gl::TRIANGLES);
-        // simulation.draw(shader_program.id(), gl::LINES);
+
         unsafe {
             let mut err: gl::types::GLenum = gl::GetError();
             while err != gl::NO_ERROR {
@@ -113,15 +126,28 @@ fn main() {
             if !paused {
                 println!("\nTime step {count}");
                 println!("elapsed_secs {elapsed_secs}");
-                simulation.take_time_step();
+                simulation.take_time_step(&color_mode);
                 count += 1;
-                let duration = (0.25 - elapsed_secs) * 1000.0;
+                let duration = (0.1 - elapsed_secs) * 1000.0;
                 println!("sleep duration {duration} ms");
                 sleep(Duration::from_millis(duration as u64));
+
+                // export terrain
+                if export_terrain {
+                    if path.is_empty() {
+                        // create directory for export
+                        let now = chrono::Local::now();
+                        let today = now.date_naive().format("%Y_%m_%d").to_string();
+                        let time = now.time().format("%H_%M_%S").to_string();
+                        path = format!("./output/{today}-{time}");
+                        println!("{path}");
+                        std::fs::create_dir(path.clone()).unwrap();
+                    }
+                    export_height_map(&simulation.ecosystem.ecosystem, count, &path);
+                }
             }
             loop_end = SDL_GetPerformanceCounter();
         }
-        //start = now;
 
         // Handle key input
         // Create a set of pressed Keys.
@@ -135,13 +161,64 @@ fn main() {
         let new_keys = &keys - &prev_keys;
         prev_keys = keys.clone();
         if new_keys.contains(&Keycode::Space) {
+            // take one time step
             println!("\nTime step {count}");
-            simulation.take_time_step();
-            count += 1;
-        }
+            simulation.take_time_step(&color_mode);
 
-        if new_keys.contains(&Keycode::T) {
+            // export terrain
+            if export_terrain {
+                if path.is_empty() {
+                    // create directory for export
+                    let now = chrono::Local::now();
+                    let today = now.date_naive().format("%Y_%m_%d").to_string();
+                    let time = now.time().format("%H_%M_%S").to_string();
+                    path = format!("./output/{today}-{time}");
+                    println!("{path}");
+                    std::fs::create_dir(path.clone()).unwrap();
+                }
+                export_height_map(&simulation.ecosystem.ecosystem, count, &path);
+            }
+
+            count += 1;
+        } else if new_keys.contains(&Keycode::T) {
+            // continuously take time steps
             paused = !paused;
+        } else if new_keys.contains(&Keycode::P) {
+            // export current data
+            if path.is_empty() {
+                // create directory for export
+                let now = chrono::Local::now();
+                let today = now.date_naive().format("%Y_%m_%d").to_string();
+                let time = now.time().format("%H_%M_%S").to_string();
+                path = format!("./output/{today}-{time}");
+                println!("{path}");
+                std::fs::create_dir(path.clone()).unwrap();
+            }
+            export_maps(&simulation.ecosystem.ecosystem, count, &path);
+        } else if new_keys.contains(&Keycode::Num1) {
+            // change color mode
+            color_mode = ColorMode::Standard;
+            simulation.change_color_mode(&color_mode);
+        } else if new_keys.contains(&Keycode::Num2) {
+            // change color mode
+            color_mode = ColorMode::HypsometricTint;
+            simulation.change_color_mode(&color_mode);
+        } else if new_keys.contains(&Keycode::Num3) {
+            // change color mode
+            color_mode = ColorMode::Sunlight;
+            simulation.change_color_mode(&color_mode);
+        } else if new_keys.contains(&Keycode::Num4) {
+            // change color mode
+            color_mode = ColorMode::SoilMoisture;
+            simulation.change_color_mode(&color_mode);
+        } else if new_keys.contains(&Keycode::Num5) {
+            // change color mode
+            color_mode = ColorMode::WindField;
+            simulation.change_color_mode(&color_mode);
+        } else if new_keys.contains(&Keycode::Num6) {
+            // change color mode
+            color_mode = ColorMode::OnlyBedrock;
+            simulation.change_color_mode(&color_mode);
         }
         let dirs = keys.into_iter().filter_map(convert_key_to_dir).collect();
         move_camera(&mut simulation.ecosystem, dirs, elapsed_secs as f32);
